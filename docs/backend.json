@@ -1,0 +1,71 @@
+
+{
+  "entities": {
+    "MemoryEntry": {
+      "title": "Memory Entry",
+      "description": "A single piece of personal data: a journal entry, a dream, or a vocal echo transcript.",
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "The raw text content of the entry."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["journal", "dream", "vocal"],
+          "description": "The category of the memory."
+        },
+        "mood": {
+          "type": "string",
+          "description": "The emotional tone associated with the entry."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the entry was created."
+        },
+        "analysis": {
+          "type": "object",
+          "description": "AI-generated insights stored with the memory."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The owner of this memory."
+        }
+      },
+      "required": ["content", "type", "createdAt", "userId"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User preferences and evolution statistics.",
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string"
+        },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "resilience": { "type": "number" },
+            "empathy": { "type": "number" },
+            "clarity": { "type": "number" },
+            "openness": { "type": "number" }
+          }
+        }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["google.com"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user profiles and aggregate growth stats."
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": "MemoryEntry",
+      "description": "Chronological collection of personal reflections."
+    }
+  }
+}

@@ -1,14 +1,32 @@
 
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, History, Moon, MessageSquare, Mic } from "lucide-react";
+import { Sparkles, History, MessageSquare, Moon, Mic } from "lucide-react";
 import { EvolutionChart } from "@/components/dashboard/evolution-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import { useUser, useFirestore, useCollection } from "@/firebase";
+import { collection, query, orderBy, limit } from "firebase/firestore";
+import { format } from "date-fns";
 
 export default function Dashboard() {
+  const { user } = useUser();
+  const db = useFirestore();
+
+  const recentMemoriesQuery = useMemo(() => {
+    if (!db || !user) return null;
+    return query(
+      collection(db, "users", user.uid, "memories"),
+      orderBy("createdAt", "desc"),
+      limit(3)
+    );
+  }, [db, user]);
+
+  const { data: recentMemories } = useCollection(recentMemoriesQuery);
+
   return (
     <div className="space-y-10">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -21,9 +39,11 @@ export default function Dashboard() {
             <Sparkles className="w-4 h-4" />
             <span className="text-xs uppercase tracking-[0.3em] font-medium">System Synchronized</span>
           </motion.div>
-          <h1 className="font-headline text-4xl font-bold tracking-tight">Welcome back, Echo</h1>
+          <h1 className="font-headline text-4xl font-bold tracking-tight">
+            Welcome back, {user?.displayName?.split(' ')[0] || 'Echo'}
+          </h1>
           <p className="text-muted-foreground font-light text-lg mt-1">
-            Your digital reflection is 74% complete.
+            Your digital reflection is evolving.
           </p>
         </div>
         <div className="flex gap-3">
@@ -47,8 +67,8 @@ export default function Dashboard() {
                 "What is a memory that shaped your perspective on fear?"
               </p>
             </div>
-            <Button variant="outline" className="mt-8 rounded-full border-white/10 glass-morphism hover:bg-white/5">
-              Reflect Now
+            <Button variant="outline" asChild className="mt-8 rounded-full border-white/10 glass-morphism hover:bg-white/5">
+              <Link href="/reflect">Reflect Now</Link>
             </Button>
           </CardContent>
         </Card>
@@ -57,31 +77,40 @@ export default function Dashboard() {
       <section className="space-y-6">
         <h2 className="font-headline text-2xl font-medium tracking-tight flex items-center gap-3">
           <History className="w-6 h-6 text-primary" />
-          On This Day
+          Recent Echoes
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
+          {recentMemories?.map((memory: any, i: number) => (
             <motion.div 
-              key={i}
+              key={memory.id}
               whileHover={{ y: -5 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
               <Card className="glass-morphism border-white/5 bg-card/20 hover:bg-card/40 transition-colors h-full">
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground uppercase tracking-widest">{i} Year Ago</span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                      {memory.createdAt?.seconds 
+                        ? format(new Date(memory.createdAt.seconds * 1000), "MMM d, yyyy") 
+                        : "Processing..."}
+                    </span>
                     <History className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <p className="line-clamp-3 font-light leading-relaxed">
-                    Today I walked through the park and realized that growth isn't linear. The trees losing their leaves are just preparing for a new season...
+                    {memory.content}
                   </p>
-                  <Button variant="link" className="p-0 h-auto text-primary text-xs uppercase tracking-widest font-bold">
-                    View Memory
+                  <Button variant="link" asChild className="p-0 h-auto text-primary text-xs uppercase tracking-widest font-bold">
+                    <Link href="/timeline">View In Timeline</Link>
                   </Button>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
+          {(!recentMemories || recentMemories.length === 0) && (
+            <div className="col-span-full py-10 text-center text-muted-foreground italic glass-morphism rounded-2xl">
+              No recent memories found. Start your first reflection.
+            </div>
+          )}
         </div>
       </section>
 

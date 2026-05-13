@@ -3,23 +3,52 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PenLine, Save, Sparkles, Smile, MessageSquare, History } from "lucide-react";
+import { Save, Smile, MessageSquare, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth, useFirestore, useUser } from "@/firebase";
+import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 export default function ReflectPage() {
   const [content, setContent] = useState("");
   const { toast } = useToast();
+  const { user } = useUser();
+  const db = useFirestore();
 
   const handleSave = () => {
-    if (!content.trim()) return;
-    toast({
-      title: "Memory Archived",
-      description: "Your reflection has been integrated into the neural vault.",
-    });
-    setContent("");
+    if (!content.trim() || !user || !db) return;
+
+    const memoryId = doc(collection(db, 'placeholder')).id;
+    const memoryRef = doc(db, 'users', user.uid, 'memories', memoryId);
+
+    const memoryData = {
+      content,
+      type: 'journal',
+      createdAt: serverTimestamp(),
+      userId: user.uid,
+      mood: 'neutral' // Default mood, could be calculated by AI later
+    };
+
+    setDoc(memoryRef, memoryData)
+      .then(() => {
+        toast({
+          title: "Memory Archived",
+          description: "Your reflection has been integrated into the neural vault.",
+        });
+        setContent("");
+      })
+      .catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: memoryRef.path,
+          operation: 'create',
+          requestResourceData: memoryData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   return (
@@ -61,10 +90,11 @@ export default function ReflectPage() {
             <Button 
               size="lg" 
               onClick={handleSave}
+              disabled={!content.trim() || !user}
               className="w-full md:w-auto px-10 h-14 rounded-full font-headline tracking-widest text-lg group overflow-hidden relative"
             >
               <span className="relative z-10 flex items-center gap-2">
-                Archive Memory <Save className="w-5 h-5" />
+                {user ? "Archive Memory" : "Login to Archive"} <Save className="w-5 h-5" />
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
             </Button>
