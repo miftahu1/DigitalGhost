@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -11,7 +12,7 @@ export default {
     extend: {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        headline: ['Space Grotesk', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -88,10 +89,15 @@ export default {
             height: '0',
           },
         },
+        'pulse-glow': {
+          '0%, 100%': { opacity: '0.6', filter: 'blur(20px)' },
+          '50%': { opacity: '0.9', filter: 'blur(40px)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'pulse-glow': 'pulse-glow 4s ease-in-out infinite',
       },
     },
   },
