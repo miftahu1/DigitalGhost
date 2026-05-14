@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, History, MessageSquare, Moon, Mic } from "lucide-react";
+import { Sparkles, History, MessageSquare, Moon, Mic, Loader2 } from "lucide-react";
 import { EvolutionChart } from "@/components/dashboard/evolution-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,22 +11,45 @@ import Link from "next/link";
 import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import { decryptData } from "@/lib/encryption";
 
 export default function Dashboard() {
   const { user } = useUser();
   const db = useFirestore();
+  const [decryptedRecent, setDecryptedRecent] = useState<any[]>([]);
+  const [isDecrypting, setIsDecrypting] = useState(false);
 
   const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
     return query(
       collection(db, "users", user.uid, "memories"),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
+      limit(10) // Fetch a few more to filter if necessary
     );
   }, [db, user]);
 
-  const { data: memories } = useCollection(memoriesQuery);
+  const { data: memories, loading } = useCollection(memoriesQuery);
 
-  const recentMemories = useMemo(() => memories?.slice(0, 3) || [], [memories]);
+  useEffect(() => {
+    async function processMemories() {
+      if (!memories || !user?.uid) return;
+      setIsDecrypting(true);
+      try {
+        const processed = await Promise.all(
+          memories.slice(0, 3).map(async (m: any) => ({
+            ...m,
+            content: m.isEncrypted ? await decryptData(m.content, user.uid) : m.content
+          }))
+        );
+        setDecryptedRecent(processed);
+      } catch (err) {
+        console.error("Dashboard decryption error:", err);
+      } finally {
+        setIsDecrypting(false);
+      }
+    }
+    processMemories();
+  }, [memories, user?.uid]);
 
   const chartData = useMemo(() => {
     if (!memories || memories.length === 0) return [];
@@ -107,39 +130,47 @@ export default function Dashboard() {
           <History className="w-5 h-5 md:w-6 md:h-6 text-primary" />
           Recent Echoes
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {recentMemories?.map((memory: any, i: number) => (
-            <motion.div 
-              key={memory.id}
-              whileHover={{ y: -5 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <Card className="glass-morphism border-white/5 bg-card/20 hover:bg-card/40 transition-colors h-full">
-                <CardContent className="p-5 md:p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-widest">
-                      {memory.createdAt?.seconds 
-                        ? format(new Date(memory.createdAt.seconds * 1000), "MMM d, yyyy") 
-                        : "Processing..."}
-                    </span>
-                    <History className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
-                  </div>
-                  <p className="line-clamp-3 font-light text-sm md:text-base leading-relaxed text-white/80">
-                    {memory.content}
-                  </p>
-                  <Button variant="link" asChild className="p-0 h-auto text-primary text-[10px] md:text-xs uppercase tracking-widest font-bold">
-                    <Link href="/timeline">View In Timeline</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-          {(!recentMemories || recentMemories.length === 0) && (
-            <div className="col-span-full py-10 px-6 text-center text-muted-foreground italic glass-morphism rounded-2xl text-sm">
-              No recent memories found. Start your first reflection.
-            </div>
-          )}
-        </div>
+        
+        {isDecrypting ? (
+          <div className="flex flex-col items-center py-10 gap-4">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Decrypting Archive...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {decryptedRecent.map((memory: any, i: number) => (
+              <motion.div 
+                key={memory.id}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <Card className="glass-morphism border-white/5 bg-card/20 hover:bg-card/40 transition-colors h-full">
+                  <CardContent className="p-5 md:p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-widest">
+                        {memory.createdAt?.seconds 
+                          ? format(new Date(memory.createdAt.seconds * 1000), "MMM d, yyyy") 
+                          : "Processing..."}
+                      </span>
+                      <History className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
+                    </div>
+                    <p className="line-clamp-3 font-light text-sm md:text-base leading-relaxed text-white/80">
+                      {memory.content}
+                    </p>
+                    <Button variant="link" asChild className="p-0 h-auto text-primary text-[10px] md:text-xs uppercase tracking-widest font-bold">
+                      <Link href="/timeline">View In Timeline</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+            {(!loading && decryptedRecent.length === 0) && (
+              <div className="col-span-full py-10 px-6 text-center text-muted-foreground italic glass-morphism rounded-2xl text-sm">
+                No recent memories found. Start your first reflection.
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
