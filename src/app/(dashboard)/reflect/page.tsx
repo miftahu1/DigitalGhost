@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -7,47 +8,57 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useFirestore, useUser } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 export default function ReflectPage() {
   const [content, setContent] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useUser();
   const db = useFirestore();
 
-  const handleSave = () => {
-    if (!content.trim() || !user || !db) return;
+  const handleSave = async () => {
+    if (!content.trim() || !user || !db || isSaving) return;
 
-    const memoryId = doc(collection(db, 'placeholder')).id;
-    const memoryRef = doc(db, 'users', user.uid, 'memories', memoryId);
+    setIsSaving(true);
+    const memoryRef = doc(collection(db, 'users', user.uid, 'memories'));
 
     const memoryData = {
       content,
       type: 'journal',
       createdAt: serverTimestamp(),
       userId: user.uid,
-      mood: 'neutral' // Default mood, could be calculated by AI later
+      mood: 'neutral'
     };
 
-    setDoc(memoryRef, memoryData)
-      .then(() => {
-        toast({
-          title: "Memory Archived",
-          description: "Your reflection has been integrated into the neural vault.",
-        });
-        setContent("");
-      })
-      .catch(async (error) => {
+    try {
+      await setDoc(memoryRef, memoryData);
+      toast({
+        title: "Memory Archived",
+        description: "Your reflection has been integrated into the neural vault.",
+      });
+      setContent("");
+    } catch (error: any) {
+      if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
           path: memoryRef.path,
           operation: 'create',
           requestResourceData: memoryData,
         });
         errorEmitter.emit('permission-error', permissionError);
-      });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Save Failed",
+          description: "An unexpected error occurred while archiving.",
+        });
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -70,6 +81,7 @@ export default function ReflectPage() {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="What are you feeling right now?"
+              disabled={isSaving}
               className="min-h-[300px] md:min-h-[400px] text-lg md:text-xl font-light leading-relaxed bg-card/40 glass-morphism border-white/10 p-5 md:p-8 rounded-2xl focus:ring-primary/40 focus:border-primary/40 transition-all placeholder:text-muted-foreground/30"
             />
           </div>
@@ -89,11 +101,11 @@ export default function ReflectPage() {
             <Button 
               size="lg" 
               onClick={handleSave}
-              disabled={!content.trim() || !user}
+              disabled={!content.trim() || !user || isSaving}
               className="w-full md:w-auto px-10 h-12 md:h-14 rounded-full font-headline tracking-widest text-base md:text-lg group overflow-hidden relative"
             >
               <span className="relative z-10 flex items-center gap-2">
-                {user ? "Archive Memory" : "Login to Archive"} <Save className="w-4 h-4 md:w-5 md:h-5" />
+                {isSaving ? "Syncing..." : user ? "Archive Memory" : "Login to Archive"} <Save className="w-4 h-4 md:w-5 md:h-5" />
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
             </Button>

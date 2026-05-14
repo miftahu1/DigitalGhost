@@ -1,19 +1,29 @@
 
+'use client';
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Toaster } from '@/components/ui/toaster';
-
-export const metadata: Metadata = {
-  title: 'Digital Ghost | AI Memory Vault',
-  description: 'A cinematic AI-powered web app for building your digital legacy.',
-};
+import { useState, useEffect } from 'react';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [particles, setParticles] = useState<{left: string, top: string, delay: string, duration: string}[]>([]);
+
+  useEffect(() => {
+    const newParticles = Array.from({ length: 30 }).map(() => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      delay: `${Math.random() * 20}s`,
+      duration: `${10 + Math.random() * 20}s`
+    }));
+    setParticles(newParticles);
+  }, []);
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -24,15 +34,15 @@ export default function RootLayout({
       <body className="font-body antialiased selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
         <FirebaseClientProvider>
           <div className="floating-particles">
-            {Array.from({ length: 30 }).map((_, i) => (
+            {particles.map((p, i) => (
               <div 
                 key={i} 
                 className="particle" 
                 style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 20}s`,
-                  animationDuration: `${10 + Math.random() * 20}s`
+                  left: p.left,
+                  top: p.top,
+                  animationDelay: p.delay,
+                  animationDuration: p.duration
                 }} 
               />
             ))}

@@ -13,26 +13,36 @@ A cinematic AI-powered web app for building your digital legacy. Built with Next
 - **Styling**: Tailwind CSS & ShadCN UI
 - **Animations**: Framer Motion
 
-## Features
-- **Neural Reflection Log**: Archive your daily thoughts with emotional tagging.
-- **Oneirology Vault**: Interpret subconscious patterns in your dreams using AI.
-- **Resonance**: A temporal simulation chat with your future self (T+10 Years).
-- **Vocal Echo**: Capture the frequency of your voice in raw audio snippets.
-- **Identity Evolution Map**: Visualize internal growth and generate AI yearly recaps.
-
 ## Setup Instructions
 
 ### 1. Firebase Configuration
-This project is pre-configured with a direct neural link. To customize:
-- Update `src/firebase/config.ts` with your own credentials if you wish to change the backend.
+This project is pre-configured with direct neural link.
 - Ensure Firestore and Authentication (Google Provider) are enabled in your Firebase Console.
 
-### 2. Genkit AI
+### 2. Firestore Security Rules
+Copy and paste these rules into your Firebase Console to allow users to securely manage their own data:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      match /memories/{memoryId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
+```
+
+### 3. Genkit AI
 This project uses Genkit for AI insights. 
 - Ensure your `GOOGLE_GENAI_API_KEY` is set in your environment variables.
 - Run `npm run genkit:dev` to start the Genkit development UI.
 
-### 3. Development
+### 4. Development
 ```bash
 npm install
 npm run dev
