@@ -16,10 +16,12 @@ import {
   LogOut,
   User as UserIcon,
   Menu,
-  X
+  X,
+  Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useAuth } from "@/firebase";
+import { useTheme } from "@/components/theme/theme-provider";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { signOut } from "firebase/auth";
 import { 
@@ -48,6 +50,7 @@ export function Sidebar() {
   const { user } = useUser();
   const auth = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -138,37 +141,49 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/5 space-y-2">
+        <div className="p-4 border-t border-white/5 space-y-3">
           {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="w-full flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-white/5 transition-all text-left">
-                  <Avatar className="w-8 h-8 border border-white/10">
-                    <AvatarImage src={user.photoURL || ""} />
-                    <AvatarFallback className="bg-primary/20 text-primary">
-                      <UserIcon className="w-4 h-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium truncate">{user.displayName || 'Neural Echo'}</p>
-                    <p className="text-[10px] text-muted-foreground truncate uppercase tracking-widest font-bold">Synchronized</p>
+            <>
+              <button
+                onClick={toggleTheme}
+                className="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-all text-left"
+              >
+                <span className="flex items-center gap-2">
+                  {theme === 'dark' ? <Sun className="w-4 h-4 text-primary" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
+                  <span className="text-sm font-medium">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                </span>
+              </button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="w-full flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-white/5 transition-all text-left">
+                    <Avatar className="w-8 h-8 border border-white/10">
+                      <AvatarImage src={user.photoURL || ""} />
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        <UserIcon className="w-4 h-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="text-sm font-medium truncate">{user.displayName || 'Neural Echo'}</p>
+                      <p className="text-[10px] text-muted-foreground truncate uppercase tracking-widest font-bold">Synchronized</p>
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 glass-morphism border-white/10 bg-card/90 backdrop-blur-xl">
+                  <div className="p-2 px-3 py-2">
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 glass-morphism border-white/10 bg-card/90 backdrop-blur-xl">
-                <div className="p-2 px-3 py-2">
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                </div>
-                <DropdownMenuSeparator className="bg-white/5" />
-                <DropdownMenuItem 
-                  onClick={handleSignOut}
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Disconnect Echo
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuSeparator className="bg-white/5" />
+                  <DropdownMenuItem 
+                    onClick={handleSignOut}
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Disconnect Echo
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           )}
         </div>
       </aside>

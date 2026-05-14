@@ -3,7 +3,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, History, MessageSquare, Moon, Mic, Loader2 } from "lucide-react";
+import { Sparkles, History, MessageSquare, Moon, Mic, Loader2, ShieldCheck } from "lucide-react";
 import { EvolutionChart } from "@/components/dashboard/evolution-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,6 +51,23 @@ export default function Dashboard() {
     processMemories();
   }, [memories, user?.uid]);
 
+  const summaryCounts = useMemo(() => {
+    if (!memories) return { total: 0, reflections: 0, dreams: 0, vocals: 0, resonances: 0 };
+
+    const reflections = memories.filter((m: any) => m.type === "journal").length;
+    const dreams = memories.filter((m: any) => m.type === "dream").length;
+    const vocals = memories.filter((m: any) => m.type === "vocal").length;
+    const resonances = memories.filter((m: any) => m.content?.includes("Dialogue with Future Self")).length;
+
+    return {
+      total: memories.length,
+      reflections,
+      dreams,
+      vocals,
+      resonances,
+    };
+  }, [memories]);
+
   const chartData = useMemo(() => {
     if (!memories || memories.length === 0) return [];
     
@@ -79,50 +96,147 @@ export default function Dashboard() {
   }, [memories]);
 
   return (
-    <div className="space-y-6 md:space-y-10">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
-        <div>
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2 text-primary mb-1 md:mb-2"
-          >
-            <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
-            <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] font-medium">System Synchronized</span>
-          </motion.div>
-          <h1 className="font-headline text-2xl md:text-4xl font-bold tracking-tight text-white">
-            Welcome back, {user?.displayName?.split(' ')[0] || 'Echo'}
-          </h1>
-          <p className="text-muted-foreground font-light text-sm md:text-lg mt-1">
-            Your digital reflection is evolving.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button asChild className="w-full md:w-auto glass-morphism border-white/10 hover:bg-white/5 px-6 rounded-full font-headline tracking-wide">
-            <Link href="/reflect">New Reflection</Link>
-          </Button>
-        </div>
-      </header>
+    <div className="space-y-8 md:space-y-10">
+      <div className="grid gap-8 xl:grid-cols-[2fr_1.1fr]">
+        <section className="space-y-6">
+          <div className="glass-morphism border-white/10 bg-transparent p-8 shadow-xl shadow-black/10 overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+            <div className="relative grid gap-6 lg:grid-cols-[1.6fr_1fr] lg:items-center">
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, x: -24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center gap-2 text-primary mb-1"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] font-medium">System Synchronized</span>
+                </motion.div>
+                <h1 className="font-headline text-3xl md:text-5xl font-bold tracking-tight text-foreground dark:text-white">
+                  Welcome back, {user?.displayName?.split(' ')[0] || 'Echo'}
+                </h1>
+                <p className="max-w-2xl text-muted-foreground font-light text-sm md:text-base leading-relaxed">
+                  Your neural archive is secure, private, and growing with every memory. Continue your journey with a guided prompt, quick actions, and a summary of your latest echoes.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+                  <Button asChild className="h-14 rounded-full glass-morphism border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold">
+                    <Link href="/reflect">New Reflection</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="h-14 rounded-full border-white/10 font-semibold">
+                    <Link href="/resonance">Future Resonance</Link>
+                  </Button>
+                </div>
+              </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <EvolutionChart data={chartData} />
-        </div>
-        
-        <Card className="glass-morphism border-white/5 bg-transparent overflow-hidden relative min-h-[200px] md:min-h-auto">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2" />
-          <CardContent className="p-6 flex flex-col h-full justify-between">
-            <div className="space-y-3 md:space-y-4">
-              <h3 className="font-headline text-lg font-medium">Daily Prompt</h3>
-              <p className="text-lg md:text-xl text-foreground font-light leading-relaxed italic">
-                "What is a memory that shaped your perspective on fear?"
-              </p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <Card className="glass-morphism border-white/10 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Active Mode</p>
+                  <h3 className="mt-2 text-2xl font-headline font-semibold">Personal Growth</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    Stay grounded with secure journaling, dream analysis, and voice echo capture.
+                  </p>
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
+                    <ShieldCheck className="w-4 h-4" /> Synced & encrypted
+                  </div>
+                </Card>
+                <Card className="glass-morphism border-white/10 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Today’s Focus</p>
+                  <h3 className="mt-2 text-2xl font-headline font-semibold">Dream integration</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    Review your latest dream notes and turn them into a reflective journal entry before bedtime.
+                  </p>
+                </Card>
+              </div>
             </div>
-            <Button variant="outline" asChild className="mt-6 md:mt-8 rounded-full border-white/10 glass-morphism hover:bg-white/5">
-              <Link href="/reflect">Reflect Now</Link>
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              { label: "Vault Entries", value: summaryCounts.total, description: "Memories stored in your private stream." },
+              { label: "Dream Excerpts", value: summaryCounts.dreams, description: "Visualized dreams held in your archive." },
+              { label: "Voice Echoes", value: summaryCounts.vocals, description: "Recorded audio entries preserved." },
+              { label: "Resonances", value: summaryCounts.resonances, description: "Future self conversations generated." },
+            ].map((item) => (
+              <Card key={item.label} className="glass-morphism border-white/10 bg-transparent p-5">
+                <CardContent className="p-0 space-y-3">
+                  <p className="text-xs uppercase tracking-[0.3em] font-bold text-muted-foreground">{item.label}</p>
+                  <p className="text-3xl font-headline font-bold">{item.value}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="glass-morphism border-white/10 p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Security Check</p>
+                  <h3 className="mt-2 text-2xl font-headline font-semibold">Privacy health</h3>
+                </div>
+                <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
+                  <ShieldCheck className="w-4 h-4" /> E2EE Active
+                </span>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Your memories remain encrypted until decrypted by your device, and session keys rotate automatically on each login.
+              </p>
+            </Card>
+            <Card className="glass-morphism border-white/10 p-6">
+              <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Quick planning</p>
+              <h3 className="mt-2 text-2xl font-headline font-semibold">Your next action</h3>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Create a new dream summary or record a vocal echo to keep your neural profile current.
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Button asChild variant="outline" className="h-12 rounded-full border-primary/20 text-primary hover:bg-primary/10 text-sm">
+                  <Link href="/dreams">Review Dreams</Link>
+                </Button>
+                <Button asChild className="h-12 rounded-full bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 text-sm">
+                  <Link href="/vocal">Capture Voice</Link>
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        <aside className="space-y-6">
+          <Card className="glass-morphism border-white/10 bg-transparent p-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Progress</p>
+            <h3 className="mt-2 text-2xl font-headline font-semibold">Growth snapshot</h3>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Your latest reflections and dream entries are shaping the next evolution of your digital ghost.
+            </p>
+            <div className="mt-6 grid gap-3">
+              <div className="rounded-3xl bg-background/60 p-4 border border-white/10">
+                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Consistency</p>
+                <p className="mt-2 text-lg font-semibold">4 sessions this week</p>
+              </div>
+              <div className="rounded-3xl bg-background/60 p-4 border border-white/10">
+                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Insight</p>
+                <p className="mt-2 text-lg font-semibold">3 dream patterns detected</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="glass-morphism border-white/10 bg-transparent p-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Shortcuts</p>
+            <div className="mt-4 space-y-3">
+              {[
+                { label: "Start reflection", href: "/reflect" },
+                { label: "Open timeline", href: "/timeline" },
+                { label: "Launch resonance", href: "/resonance" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="block rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-foreground hover:bg-white/10"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </Card>
+        </aside>
       </div>
 
       <section className="space-y-6">
@@ -154,7 +268,7 @@ export default function Dashboard() {
                       </span>
                       <History className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
                     </div>
-                    <p className="line-clamp-3 font-light text-sm md:text-base leading-relaxed text-white/80">
+                    <p className="line-clamp-3 font-light text-sm md:text-base leading-relaxed text-foreground/80 dark:text-white/80">
                       {memory.content}
                     </p>
                     <Button variant="link" asChild className="p-0 h-auto text-primary text-[10px] md:text-xs uppercase tracking-widest font-bold">

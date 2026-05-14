@@ -5,6 +5,34 @@
 
 @layer base {
   :root {
+    --background: 210 24% 98%;
+    --foreground: 214 19% 12%;
+    --card: 210 24% 100%;
+    --card-foreground: 214 19% 12%;
+    --popover: 210 25% 98%;
+    --popover-foreground: 214 19% 12%;
+    --primary: 215 92% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 190 100% 42%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 16% 91%;
+    --muted-foreground: 214 19% 35%;
+    --accent: 206 100% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 348 93% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 19% 88%;
+    --input: 210 20% 94%;
+    --ring: 205 100% 58%;
+    --radius: 1rem;
+    --chart-1: 217 100% 45%;
+    --chart-2: 184 100% 36%;
+    --chart-3: 214 74% 62%;
+    --chart-4: 168 78% 46%;
+    --chart-5: 42 94% 55%;
+  }
+
+  html.dark {
     --background: 250 17% 7%;
     --foreground: 0 0% 98%;
     --card: 250 17% 10%;
@@ -24,7 +52,6 @@
     --border: 250 17% 20%;
     --input: 250 17% 20%;
     --ring: 253 83% 75%;
-    --radius: 1rem;
     --chart-1: 253 83% 75%;
     --chart-2: 222 94% 68%;
     --chart-3: 280 65% 60%;
@@ -40,21 +67,31 @@
   body {
     @apply bg-background text-foreground selection:bg-primary/30;
     background-attachment: fixed;
-    background-image: 
-      radial-gradient(circle at 0% 0%, hsla(253, 83%, 75%, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, hsla(222, 94%, 68%, 0.05) 0%, transparent 50%);
+    background-image:
+      radial-gradient(circle at 0% 0%, hsla(var(--primary), 0.08) 0%, transparent 45%),
+      radial-gradient(circle at 100% 100%, hsla(var(--accent), 0.08) 0%, transparent 45%);
+  }
+
+  html:not(.dark) .text-white,
+  html:not(.dark) .text-white\/50,
+  html:not(.dark) .text-white\/60,
+  html:not(.dark) .text-white\/70,
+  html:not(.dark) .text-white\/80,
+  html:not(.dark) .text-white\/90 {
+    color: hsl(var(--foreground)) !important;
   }
 }
 
 .glass {
-  @apply bg-card/40 backdrop-blur-xl border border-white/10;
+  @apply bg-card/40 backdrop-blur-xl;
+  border: 1px solid hsla(var(--border), 0.12);
 }
 
 .glass-morphism {
-  background: rgba(17, 16, 22, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: hsla(var(--card), 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsla(var(--border), 0.18);
 }
 
 .text-glow {

@@ -119,6 +119,9 @@ export default function VocalEchoPage() {
         <p className="text-muted-foreground font-light text-lg mx-auto max-w-xl">
           Capture the raw frequency of your voice. The sound of who you are in this exact moment.
         </p>
+        <div className="mx-auto max-w-xl rounded-3xl border border-accent/20 bg-accent/5 px-5 py-4 text-sm text-muted-foreground">
+          Voice capture is currently under development and will work soon.
+        </div>
       </header>
 
       {permissionStatus === 'denied' && (

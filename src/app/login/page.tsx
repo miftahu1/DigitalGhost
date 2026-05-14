@@ -125,7 +125,10 @@ export default function LoginPage() {
               <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
             </Button>
             
-            <p className="mt-8 text-[10px] uppercase tracking-[0.2em] text-center text-muted-foreground font-bold">
+            <p className="mt-6 text-center text-sm leading-relaxed text-muted-foreground">
+              Your Google identity unlocks your private vault. We never access your memories without explicit consent.
+            </p>
+            <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-center text-muted-foreground font-bold">
               Secure Neural Connection Established
             </p>
           </CardContent>

@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from '@/components/theme/theme-provider';
 import { useState, useEffect } from 'react';
 
 export default function RootLayout({
@@ -25,7 +26,7 @@ export default function RootLayout({
   }, []);
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -33,7 +34,8 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
         <FirebaseClientProvider>
-          <div className="floating-particles">
+          <ThemeProvider>
+            <div className="floating-particles">
             {particles.map((p, i) => (
               <div 
                 key={i} 
@@ -49,6 +51,7 @@ export default function RootLayout({
           </div>
           {children}
           <Toaster />
+          </ThemeProvider>
         </FirebaseClientProvider>
       </body>
     </html>
