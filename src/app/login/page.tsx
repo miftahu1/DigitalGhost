@@ -1,22 +1,23 @@
-
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Ghost, LogIn } from "lucide-react";
+import { Ghost, LogIn, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth, useUser } from "@/firebase";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { useFirestore } from "@/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const { user, loading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && user) {
@@ -25,12 +26,12 @@ export default function LoginPage() {
   }, [user, loading, router]);
 
   const handleGoogleLogin = async () => {
+    setError(null);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Initialize user profile if it doesn't exist
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -50,8 +51,9 @@ export default function LoginPage() {
       }
       
       router.push("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+      setError(error.message || "An unexpected error occurred during synchronization.");
     }
   };
 
@@ -65,8 +67,21 @@ export default function LoginPage() {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
+        className="w-full max-w-md space-y-4"
       >
-        <Card className="w-full max-w-md glass-morphism border-white/5 bg-transparent overflow-hidden">
+        {error && (
+          <Alert variant="destructive" className="glass-morphism border-destructive/50 bg-destructive/10">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Connection Error</AlertTitle>
+            <AlertDescription className="text-xs">
+              {error.includes("auth/api-key-not-valid") 
+                ? "The Firebase API key is missing or invalid. Please check your environment variables." 
+                : error}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Card className="w-full glass-morphism border-white/5 bg-transparent overflow-hidden">
           <CardHeader className="text-center pb-2">
             <div className="flex justify-center mb-4">
               <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20">

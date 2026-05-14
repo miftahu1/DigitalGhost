@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -28,9 +27,9 @@ export default function DreamsPage() {
       const result = await interpretDream({ dreamEntry: dream });
       setAnalysis(result);
       
-      // Persist the dream and its analysis to the neural vault
-      const dreamId = doc(collection(db, 'placeholder')).id;
-      const dreamRef = doc(db, 'users', user.uid, 'memories', dreamId);
+      // Generate a clean reference for the new memory
+      const memoriesRef = collection(db, 'users', user.uid, 'memories');
+      const dreamRef = doc(memoriesRef);
       
       await setDoc(dreamRef, {
         content: dream,
