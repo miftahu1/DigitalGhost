@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, Sparkles, Send, Bot, User, ArrowLeft, AlertCircle } from "lucide-react";
+import { MessageSquare, Sparkles, Send, Bot, User, ArrowLeft } from "lucide-react";
 import { futureSelfChat } from "@/ai/flows/future-self-chat-flow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ type Message = {
   content: string;
 };
 
-export const maxDuration = 60; // Increase timeout for AI generation
+export const maxDuration = 60;
 
 export default function ResonancePage() {
   const { user } = useUser();
@@ -35,13 +35,17 @@ export default function ResonancePage() {
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch recent memories to provide context to the future self
-  const memoriesQuery = query(
-    collection(db || { type: 'dummy' } as any, "users", user?.uid || "dummy", "memories"),
-    orderBy("createdAt", "desc"),
-    limit(5)
-  );
-  const { data: recentMemories } = useCollection(user ? memoriesQuery : null);
+  // Safely memoize the query to prevent Firestore 400 errors during auth transition
+  const memoriesQuery = useMemo(() => {
+    if (!db || !user?.uid) return null;
+    return query(
+      collection(db, "users", user.uid, "memories"),
+      orderBy("createdAt", "desc"),
+      limit(10)
+    );
+  }, [db, user?.uid]);
+
+  const { data: recentMemories } = useCollection(memoriesQuery);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -58,9 +62,12 @@ export default function ResonancePage() {
     setIsTyping(true);
 
     try {
-      const memoryContext = recentMemories 
-        ? recentMemories.map(m => `[${formatDate(m.createdAt)}] ${m.content}`).join("\n")
-        : "No previous memories found.";
+      const memoryContext = recentMemories && recentMemories.length > 0
+        ? recentMemories
+            .filter(m => m.type !== 'vocal' || !m.content.includes('Dialogue with Future Self'))
+            .map(m => `[Memory Type: ${m.type}] ${m.content}`)
+            .join("\n")
+        : "The vault is currently empty. Speak from your heart.";
 
       const response = await futureSelfChat({
         userMessage: input,
@@ -75,7 +82,7 @@ export default function ResonancePage() {
       
       setMessages((prev) => [...prev, assistantMsg]);
 
-      // Archive this temporal interaction
+      // Archive interaction
       const interactionRef = doc(collection(db, 'users', user.uid, 'memories'));
       await setDoc(interactionRef, {
         content: `Dialogue with Future Self\nYounger Me: ${input}\nFuture Me: ${response.response}`,
@@ -90,24 +97,16 @@ export default function ResonancePage() {
       });
 
     } catch (error: any) {
-      console.error("AI Error:", error);
+      console.error("AI resonance error:", error);
       toast({
         variant: "destructive",
         title: "Temporal Link Disrupted",
-        description: "The connection to your future self was lost. This often happens during periods of high solar activity... or server maintenance. Please try again."
+        description: "The connection to your future self is unstable. Ensure your GOOGLE_GENAI_API_KEY is set in Vercel settings."
       });
-      // Optionally remove the last user message if the AI failed
-      setMessages(prev => prev.slice(0, -1));
-      setInput(input); // Restore input
+      setIsTyping(false);
     } finally {
       setIsTyping(false);
     }
-  };
-
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return "Unknown Date";
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString();
   };
 
   return (
