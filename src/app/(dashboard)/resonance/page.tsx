@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, Sparkles, Send, Bot, User, ArrowLeft } from "lucide-react";
+import { MessageSquare, Sparkles, Send, Bot, User, ArrowLeft, AlertTriangle } from "lucide-react";
 import { futureSelfChat } from "@/ai/flows/future-self-chat-flow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,7 +99,7 @@ export default function ResonancePage() {
       toast({
         variant: "destructive",
         title: "Temporal Link Disrupted",
-        description: "The connection to your future self is unstable. Please verify your Gemini API key in Vercel settings."
+        description: "The AI engine failed to respond. Please ensure GOOGLE_GENAI_API_KEY is set in your Vercel Project Settings and that you have redeployed.",
       });
     } finally {
       setIsTyping(false);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Ghost, LogIn, AlertCircle } from "lucide-react";
+import { Ghost, LogIn, AlertCircle, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth, useUser } from "@/firebase";
@@ -18,16 +18,23 @@ export default function LoginPage() {
   const db = useFirestore();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && !isLoggingIn) {
       router.push("/dashboard");
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isLoggingIn]);
 
   const handleGoogleLogin = async () => {
+    if (isLoggingIn) return;
+    
     setError(null);
+    setIsLoggingIn(true);
     const provider = new GoogleAuthProvider();
+    // Prompting for account ensures the popup has enough time to initialize
+    provider.setCustomParameters({ prompt: 'select_account' });
+
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
@@ -53,11 +60,21 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Login failed:", error);
-      setError(error.message || "An unexpected error occurred during synchronization.");
+      let message = error.message;
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        message = "Connection Interrupted: The verification window closed prematurely. Please ensure 'digitalghost.vercel.app' is added to your Authorized Domains in the Firebase Console.";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        message = "Only one login request can be active at a time.";
+      }
+      
+      setError(message);
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  if (loading) return null;
+  if (loading && !isLoggingIn) return null;
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 relative bg-background overflow-hidden">
@@ -71,12 +88,10 @@ export default function LoginPage() {
       >
         {error && (
           <Alert variant="destructive" className="glass-morphism border-destructive/50 bg-destructive/10">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Connection Error</AlertTitle>
-            <AlertDescription className="text-xs">
-              {error.includes("auth/api-key-not-valid") 
-                ? "The Firebase API key is missing or invalid. Please check your environment variables." 
-                : error}
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Synchronization Error</AlertTitle>
+            <AlertDescription className="text-xs leading-relaxed mt-1">
+              {error}
             </AlertDescription>
           </Alert>
         )}
@@ -96,11 +111,16 @@ export default function LoginPage() {
           <CardContent className="p-8">
             <Button 
               onClick={handleGoogleLogin}
+              disabled={isLoggingIn}
               className="w-full h-14 rounded-full font-headline tracking-widest text-lg group relative overflow-hidden"
             >
               <span className="relative z-10 flex items-center gap-3">
-                <LogIn className="w-5 h-5" />
-                Sign in with Google
+                {isLoggingIn ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <LogIn className="w-5 h-5" />
+                )}
+                {isLoggingIn ? "Syncing..." : "Sign in with Google"}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
             </Button>
