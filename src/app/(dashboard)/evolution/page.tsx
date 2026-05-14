@@ -1,9 +1,8 @@
-
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LineChart as ChartIcon, Sparkles, TrendingUp, Heart, Zap, Loader2, BookOpen } from "lucide-react";
+import { LineChart as ChartIcon, Sparkles, TrendingUp, Heart, Zap, Loader2, BookOpen, BrainCircuit } from "lucide-react";
 import { EvolutionChart, ChartDataPoint } from "@/components/dashboard/evolution-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -12,8 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useUser, useFirestore, useDoc, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
 import { yearlyRecap } from "@/ai/flows/yearly-recap";
+import { emotionalInsightSummary, EmotionalInsightSummaryOutput } from "@/ai/flows/emotional-insight-summary";
 import { useToast } from "@/hooks/use-toast";
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isSameMonth } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 export default function EvolutionPage() {
   const { user } = useUser();
@@ -21,7 +22,9 @@ export default function EvolutionPage() {
   const { toast } = useToast();
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [recapResult, setRecapResult] = useState<string | null>(null);
+  const [emotionalInsight, setEmotionalInsight] = useState<EmotionalInsightSummaryOutput | null>(null);
 
   const userRef = useMemo(() => {
     if (!db || !user) return null;
@@ -32,17 +35,22 @@ export default function EvolutionPage() {
 
   const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
-    return query(collection(db, "users", user.uid, "memories"), orderBy("createdAt", "desc"));
+    return query(collection(db, "users", user.uid, "memories"), orderBy("createdAt", "asc"));
   }, [db, user]);
 
   const { data: memories } = useCollection(memoriesQuery);
 
   const chartData = useMemo(() => {
-    if (!memories) return [];
+    if (!memories || memories.length === 0) return [];
 
     const now = new Date();
-    const sixMonthsAgo = subMonths(now, 6);
-    const months = eachMonthOfInterval({ start: sixMonthsAgo, end: now });
+    // Start from the earliest memory or 5 months ago, whichever is later
+    const firstMemoryDate = memories[0].createdAt?.seconds 
+      ? new Date(memories[0].createdAt.seconds * 1000) 
+      : subMonths(now, 5);
+      
+    const startOfRange = firstMemoryDate > subMonths(now, 5) ? firstMemoryDate : subMonths(now, 5);
+    const months = eachMonthOfInterval({ start: startOfRange, end: now });
 
     return months.map(month => {
       const monthStart = startOfMonth(month);
@@ -54,24 +62,19 @@ export default function EvolutionPage() {
         return date >= monthStart && date <= monthEnd;
       });
 
-      // Calculate pseudo-stats based on activity
-      const activityCount = monthMemories.length;
+      const count = monthMemories.length;
       return {
         name: format(month, "MMM"),
-        growth: Math.min(100, (activityCount * 15) + 20),
-        mood: 40 + (Math.random() * 40), // In a real app, this would come from mood tags
-        emotional: 50 + (activityCount * 5)
+        growth: Math.min(100, (count * 12) + 15),
+        mood: count > 0 ? (45 + (Math.random() * 30)) : 0,
+        emotional: count > 0 ? (50 + (count * 4)) : 0
       } as ChartDataPoint;
     });
   }, [memories]);
 
   const handleGenerateRecap = async () => {
     if (!memories || memories.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Insufficient Data",
-        description: "You need at least one memory to generate a recap.",
-      });
+      toast({ variant: "destructive", title: "Insufficient Data", description: "You need at least one memory." });
       return;
     }
 
@@ -82,20 +85,31 @@ export default function EvolutionPage() {
         .map((m: any) => `[${m.type}] ${m.content}`)
         .join("\n\n");
 
-      const result = await yearlyRecap({
-        year,
-        entries: entriesText,
-      });
-
+      const result = await yearlyRecap({ year, entries: entriesText });
       setRecapResult(result.recap);
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Neural Error",
-        description: "The AI could not synthesize your timeline at this moment.",
-      });
+      toast({ variant: "destructive", title: "Neural Error", description: "Synthesis failed." });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleEmotionalSynthesis = async () => {
+    if (!memories || memories.length === 0) return;
+    setIsSynthesizing(true);
+    try {
+      const entries = memories.slice(-20).map((m: any) => ({
+        timestamp: m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+        content: m.content,
+        type: m.type === 'vocal' ? 'voice_note' : 'journal'
+      }));
+
+      const result = await emotionalInsightSummary({ entries });
+      setEmotionalInsight(result);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Synthesis Blocked", description: "Could not read the emotional ether." });
+    } finally {
+      setIsSynthesizing(false);
     }
   };
 
@@ -112,7 +126,7 @@ export default function EvolutionPage() {
         <h1 className="font-headline text-4xl font-bold tracking-tight flex items-center gap-3">
           Identity Evolution Map <ChartIcon className="w-8 h-8 text-primary" />
         </h1>
-        <p className="text-muted-foreground font-light text-lg mt-1">Visualize your internal growth over the aeons.</p>
+        <p className="text-muted-foreground font-light text-lg mt-1">Visualize your internal growth over the temporal axis.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -129,7 +143,7 @@ export default function EvolutionPage() {
               {profileLoading ? (
                 <div className="flex flex-col items-center py-10 gap-2">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Calculating Vectors...</span>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground text-center">Calculating Vectors...</span>
                 </div>
               ) : (
                 stats.map((stat, i) => (
@@ -152,22 +166,105 @@ export default function EvolutionPage() {
              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
              <CardContent className="p-8 text-center space-y-4">
                 <BookOpen className="w-8 h-8 text-primary mx-auto" />
-                <h4 className="font-headline text-lg font-medium">Yearly Recap</h4>
-                <p className="text-sm text-muted-foreground font-light leading-relaxed">
-                  Synthesize your stored reflections into an AI-generated narrative of your year.
+                <h4 className="font-headline text-lg font-medium">Yearly Echo</h4>
+                <p className="text-xs text-muted-foreground font-light leading-relaxed">
+                  Synthesize your stored reflections into an AI narrative of your progress.
                 </p>
                 <Button 
                   onClick={handleGenerateRecap}
                   disabled={isGenerating || !memories || memories.length === 0}
-                  variant="link" 
-                  className="text-primary text-xs font-bold uppercase tracking-widest hover:text-white transition-colors"
+                  variant="outline" 
+                  className="w-full rounded-full border-white/10 glass hover:bg-white/5"
                 >
-                  {isGenerating ? "Processing..." : "GENERATE RECAP"}
+                  {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
+                  {isGenerating ? "Synthesizing..." : "GENERATE RECAP"}
                 </Button>
              </CardContent>
           </Card>
         </div>
       </div>
+
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-headline text-2xl font-medium tracking-tight flex items-center gap-3">
+            <BrainCircuit className="w-6 h-6 text-accent" />
+            Emotional Landscape
+          </h2>
+          <Button 
+            onClick={handleEmotionalSynthesis}
+            disabled={isSynthesizing || !memories || memories.length === 0}
+            className="rounded-full bg-accent/20 border-accent/30 text-accent hover:bg-accent/30"
+          >
+            {isSynthesizing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            {isSynthesizing ? "Synthesizing Patterns..." : "Neural Synthesis"}
+          </Button>
+        </div>
+
+        {emotionalInsight ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            <Card className="glass-morphism border-white/5 bg-accent/5 col-span-full">
+              <CardContent className="p-8 space-y-4">
+                <h4 className="font-headline text-lg text-accent flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> Global Summary
+                </h4>
+                <p className="text-lg font-light italic leading-relaxed text-foreground/90">
+                  "{emotionalInsight.emotionalSummary}"
+                </p>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {emotionalInsight.persistentFeelings.map((feeling, i) => (
+                    <Badge key={i} variant="outline" className="rounded-full bg-white/5 border-white/10 px-4 py-1">
+                      {feeling}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-morphism border-white/5 bg-transparent">
+              <CardHeader>
+                <CardTitle className="text-base font-medium">Significant Shifts</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {emotionalInsight.significantShifts.map((shift, i) => (
+                  <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] uppercase tracking-widest text-primary font-bold">{shift.period}</span>
+                      <TrendingUp className="w-3 h-3 text-primary" />
+                    </div>
+                    <p className="text-sm font-light leading-relaxed">{shift.description}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="glass-morphism border-white/5 bg-transparent">
+              <CardHeader>
+                <CardTitle className="text-base font-medium">Neural State</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center py-10 space-y-4 text-center">
+                <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center relative">
+                  <div className="absolute inset-0 bg-accent/40 rounded-full animate-ping opacity-20" />
+                  <Heart className="w-10 h-10 text-accent" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-headline font-bold text-accent capitalize">
+                    {emotionalInsight.overallEmotionalState}
+                  </h3>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Current Dominant Vector</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : (
+          <div className="py-20 text-center glass-morphism rounded-3xl border-white/5 text-muted-foreground font-light">
+            Trigger Neural Synthesis to map your internal emotional shifts.
+          </div>
+        )}
+      </section>
 
       <Dialog open={!!recapResult} onOpenChange={(open) => !open && setRecapResult(null)}>
         <DialogContent className="max-w-2xl glass-morphism border-white/10 bg-card/90 backdrop-blur-2xl">

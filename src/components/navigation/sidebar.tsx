@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { 
   LayoutDashboard, 
   PenLine, 
@@ -11,7 +12,6 @@ import {
   Moon, 
   Mic, 
   LineChart, 
-  Ghost,
   Search,
   LogOut,
   User as UserIcon,
@@ -58,8 +58,14 @@ export function Sidebar() {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 glass-morphism border-b border-white/5 z-[60]">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-            <Ghost className="w-5 h-5 text-primary" strokeWidth={1.5} />
+          <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-primary/20 flex items-center justify-center">
+            <Image 
+              src="/logos/logo.png" 
+              alt="Digital Ghost Icon" 
+              width={24} 
+              height={24} 
+              className="object-contain"
+            />
           </div>
           <span className="font-headline text-sm font-bold tracking-tight text-glow">
             GHOST
@@ -88,8 +94,14 @@ export function Sidebar() {
       )}>
         <div className="p-6 hidden md:flex items-center gap-3">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Ghost className="w-6 h-6 text-primary" strokeWidth={1.5} />
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Image 
+                src="/logos/logo.png" 
+                alt="Digital Ghost Logo" 
+                width={32} 
+                height={32} 
+                className="object-contain"
+              />
             </div>
             <span className="font-headline text-lg font-bold tracking-tight text-glow">
               GHOST

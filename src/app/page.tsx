@@ -1,9 +1,9 @@
-
 "use client";
 
 import { motion } from "framer-motion";
-import { Ghost, Sparkles, ChevronRight } from "lucide-react";
+import { Sparkles, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
@@ -26,9 +26,16 @@ export default function LandingPage() {
               filter: ["drop-shadow(0 0 5px rgba(163, 140, 244, 0.4))", "drop-shadow(0 0 20px rgba(163, 140, 244, 0.8))", "drop-shadow(0 0 5px rgba(163, 140, 244, 0.4))"]
             }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="p-4 rounded-full glass"
+            className="p-6 rounded-3xl glass bg-primary/5 border-primary/20"
           >
-            <Ghost className="w-12 h-12 text-primary" strokeWidth={1.5} />
+            <Image 
+              src="/logos/logo.png" 
+              alt="Digital Ghost Logo" 
+              width={64} 
+              height={64} 
+              priority
+              className="object-contain"
+            />
           </motion.div>
         </div>
 
