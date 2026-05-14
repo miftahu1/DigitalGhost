@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -9,22 +10,50 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
-import { format } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 
 export default function Dashboard() {
   const { user } = useUser();
   const db = useFirestore();
 
-  const recentMemoriesQuery = useMemo(() => {
+  const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
     return query(
       collection(db, "users", user.uid, "memories"),
-      orderBy("createdAt", "desc"),
-      limit(3)
+      orderBy("createdAt", "desc")
     );
   }, [db, user]);
 
-  const { data: recentMemories } = useCollection(recentMemoriesQuery);
+  const { data: memories } = useCollection(memoriesQuery);
+
+  const recentMemories = useMemo(() => memories?.slice(0, 3) || [], [memories]);
+
+  const chartData = useMemo(() => {
+    if (!memories || memories.length === 0) return [];
+    
+    const now = new Date();
+    const startOfRange = subMonths(now, 5);
+    const months = eachMonthOfInterval({ start: startOfRange, end: now });
+
+    return months.map(month => {
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
+      
+      const monthMemories = memories.filter((m: any) => {
+        if (!m.createdAt?.seconds) return false;
+        const date = new Date(m.createdAt.seconds * 1000);
+        return date >= monthStart && date <= monthEnd;
+      });
+
+      const count = monthMemories.length;
+      return {
+        name: format(month, "MMM"),
+        growth: Math.min(100, (count * 15) + 10),
+        mood: count > 0 ? (50 + (Math.random() * 20)) : 0,
+        emotional: count > 0 ? (40 + (count * 5)) : 0
+      };
+    });
+  }, [memories]);
 
   return (
     <div className="space-y-6 md:space-y-10">
@@ -38,7 +67,7 @@ export default function Dashboard() {
             <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
             <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] font-medium">System Synchronized</span>
           </motion.div>
-          <h1 className="font-headline text-2xl md:text-4xl font-bold tracking-tight">
+          <h1 className="font-headline text-2xl md:text-4xl font-bold tracking-tight text-white">
             Welcome back, {user?.displayName?.split(' ')[0] || 'Echo'}
           </h1>
           <p className="text-muted-foreground font-light text-sm md:text-lg mt-1">
@@ -54,7 +83,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <EvolutionChart />
+          <EvolutionChart data={chartData} />
         </div>
         
         <Card className="glass-morphism border-white/5 bg-transparent overflow-hidden relative min-h-[200px] md:min-h-auto">
@@ -95,7 +124,7 @@ export default function Dashboard() {
                     </span>
                     <History className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
                   </div>
-                  <p className="line-clamp-3 font-light text-sm md:text-base leading-relaxed">
+                  <p className="line-clamp-3 font-light text-sm md:text-base leading-relaxed text-white/80">
                     {memory.content}
                   </p>
                   <Button variant="link" asChild className="p-0 h-auto text-primary text-[10px] md:text-xs uppercase tracking-widest font-bold">
@@ -139,7 +168,7 @@ export default function Dashboard() {
                 <p className="text-[10px] md:text-xs text-muted-foreground">Analyze your dreams</p>
               </div>
             </CardContent>
-          </Card>
+          </Link>
         </Link>
 
         <Link href="/vocal">

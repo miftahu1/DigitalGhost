@@ -15,21 +15,11 @@ interface EvolutionChartProps {
   data?: ChartDataPoint[];
 }
 
-const defaultData: ChartDataPoint[] = [
-  { name: "Jan", emotional: 400, growth: 240, mood: 240 },
-  { name: "Feb", emotional: 300, growth: 139, mood: 221 },
-  { name: "Mar", emotional: 200, growth: 980, mood: 229 },
-  { name: "Apr", emotional: 278, growth: 390, mood: 200 },
-  { name: "May", emotional: 189, growth: 480, mood: 218 },
-  { name: "Jun", emotional: 239, growth: 380, mood: 250 },
-  { name: "Jul", emotional: 349, growth: 430, mood: 210 },
-];
-
-export function EvolutionChart({ data = defaultData }: EvolutionChartProps) {
+export function EvolutionChart({ data = [] }: EvolutionChartProps) {
   return (
     <Card className="glass-morphism border-white/5 bg-transparent h-[400px]">
       <CardHeader>
-        <CardTitle className="font-headline text-lg font-medium tracking-wide flex items-center justify-between">
+        <CardTitle className="font-headline text-lg font-medium tracking-wide flex items-center justify-between text-white">
           Identity Evolution Map
           <span className="text-xs font-light text-muted-foreground uppercase tracking-widest">Active Neural Tracking</span>
         </CardTitle>
@@ -57,7 +47,8 @@ export function EvolutionChart({ data = defaultData }: EvolutionChartProps) {
                 backgroundColor: 'rgba(17, 16, 22, 0.9)', 
                 borderColor: 'rgba(255, 255, 255, 0.1)',
                 borderRadius: '12px',
-                backdropFilter: 'blur(10px)'
+                backdropFilter: 'blur(10px)',
+                color: '#fff'
               }}
               itemStyle={{ color: '#A38CF4' }}
             />
