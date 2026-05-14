@@ -178,7 +178,7 @@ export default function LandingPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                       {[
                         { label: "Reflections", value: overviewCounts.journal },
                         { label: "Dreams", value: overviewCounts.dream },

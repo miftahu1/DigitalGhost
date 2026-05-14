@@ -118,10 +118,10 @@ export default function Dashboard() {
                   Your neural archive is secure, private, and growing with every memory. Continue your journey with a guided prompt, quick actions, and a summary of your latest echoes.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
-                  <Button asChild className="h-14 rounded-full glass-morphism border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold">
+                  <Button asChild variant="default" className="h-14 rounded-full text-sm font-semibold">
                     <Link href="/reflect">New Reflection</Link>
                   </Button>
-                  <Button asChild variant="outline" className="h-14 rounded-full border-white/10 font-semibold">
+                  <Button asChild variant="outline" className="h-14 rounded-full font-semibold">
                     <Link href="/resonance">Future Resonance</Link>
                   </Button>
                 </div>
@@ -149,7 +149,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             {[
               { label: "Vault Entries", value: summaryCounts.total, description: "Memories stored in your private stream." },
               { label: "Dream Excerpts", value: summaryCounts.dreams, description: "Visualized dreams held in your archive." },
