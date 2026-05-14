@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/toast-hook";
+import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore } from "@/firebase";
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 
