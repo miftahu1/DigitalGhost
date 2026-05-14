@@ -66,7 +66,7 @@ export default function ResonancePage() {
             .filter(m => m.type !== 'vocal' || !m.content.includes('Dialogue with Future Self'))
             .map(m => `[Memory Type: ${m.type}] ${m.content}`)
             .join("\n")
-        : "The vault is currently empty. Speak from your heart.";
+        : "";
 
       const response = await futureSelfChat({
         userMessage: input,
@@ -81,6 +81,7 @@ export default function ResonancePage() {
       
       setMessages((prev) => [...prev, assistantMsg]);
 
+      // Archive the interaction
       const interactionRef = doc(collection(db, 'users', user.uid, 'memories'));
       await setDoc(interactionRef, {
         content: `Dialogue with Future Self\nYounger Me: ${input}\nFuture Me: ${response.response}`,
@@ -96,19 +97,34 @@ export default function ResonancePage() {
 
     } catch (error: any) {
       console.error("AI resonance error:", error);
+      
+      let errorTitle = "Temporal Link Disrupted";
+      let errorDesc = "The AI engine failed to respond. Check your internet connection.";
+
+      if (error.message?.includes("API key expired")) {
+        errorTitle = "API Key Expired";
+        errorDesc = "Your Google AI API Key has expired. Please generate a new one in Google AI Studio and update your Vercel Environment Variables.";
+      } else if (error.message?.includes("INVALID_ARGUMENT")) {
+        errorTitle = "Configuration Error";
+        errorDesc = "The API key provided is invalid or incorrectly configured in Vercel.";
+      }
+
       toast({
         variant: "destructive",
-        title: "Temporal Link Disrupted",
-        description: "The AI engine failed to respond. Please ensure GOOGLE_GENAI_API_KEY is set in your Vercel Project Settings and that you have redeployed.",
+        title: errorTitle,
+        description: errorDesc,
       });
+      
+      setMessages(prev => prev.filter(m => m.id !== userMsg.id));
+      setInput(userMsg.content);
     } finally {
       setIsTyping(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-120px)] md:h-[calc(100vh-80px)] flex flex-col space-y-4 md:space-y-6">
-      <header className="flex items-center justify-between gap-2">
+    <div className="max-w-4xl mx-auto h-[calc(100vh-140px)] flex flex-col space-y-4 md:space-y-6">
+      <header className="flex items-center justify-between gap-2 px-2">
         <div className="flex items-center gap-3 md:gap-4">
           <Link href="/dashboard" className="p-2 glass rounded-full hover:bg-white/5 transition-colors shrink-0">
             <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
@@ -127,7 +143,7 @@ export default function ResonancePage() {
         
         <div 
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 scroll-smooth custom-scrollbar"
+          className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 scroll-smooth custom-scrollbar"
         >
           <AnimatePresence initial={false}>
             {messages.map((msg) => (
@@ -137,13 +153,13 @@ export default function ResonancePage() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div className={`flex gap-2 md:gap-3 max-w-[90%] md:max-w-[80%] ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                  <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                <div className={`flex gap-3 md:gap-4 max-w-[90%] md:max-w-[80%] ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                     msg.role === "user" ? "bg-accent/20" : "bg-primary/20"
                   }`}>
-                    {msg.role === "user" ? <User className="w-3 h-3 md:w-4 md:h-4 text-accent" /> : <Bot className="w-3 h-3 md:w-4 md:h-4 text-primary" />}
+                    {msg.role === "user" ? <User className="w-4 h-4 md:w-5 md:h-5 text-accent" /> : <Bot className="w-4 h-4 md:w-5 md:h-5 text-primary" />}
                   </div>
-                  <div className={`p-3 md:p-4 rounded-2xl font-light text-sm md:text-base leading-relaxed ${
+                  <div className={`p-4 md:p-6 rounded-2xl font-light text-sm md:text-lg leading-relaxed ${
                     msg.role === "user" 
                       ? "bg-accent/10 border border-accent/20 text-white rounded-tr-none" 
                       : "bg-white/5 border border-white/10 text-white/90 rounded-tl-none"
@@ -159,9 +175,9 @@ export default function ResonancePage() {
                 animate={{ opacity: 1 }}
                 className="flex justify-start"
               >
-                <div className="flex gap-2 md:gap-3 items-center">
-                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Bot className="w-3 h-3 md:w-4 md:h-4 text-primary" />
+                <div className="flex gap-3 items-center">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Bot className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex gap-1">
                     <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
@@ -174,28 +190,28 @@ export default function ResonancePage() {
           </AnimatePresence>
         </div>
 
-        <div className="p-3 md:p-6 border-t border-white/5 glass-morphism">
+        <div className="p-4 md:p-8 border-t border-white/5 glass-morphism">
           <form 
             onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-            className="relative flex items-center gap-2"
+            className="relative flex items-center gap-3"
           >
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={user ? "Tell me what's on your mind..." : "Log in to resonate..."}
               disabled={!user || isTyping}
-              className="h-12 md:h-14 bg-white/5 border-white/10 rounded-full px-5 md:px-6 focus:ring-primary/50 font-light text-sm md:text-base text-white"
+              className="h-12 md:h-16 bg-white/5 border-white/10 rounded-full px-6 md:px-8 focus:ring-primary/50 font-light text-sm md:text-lg text-white"
             />
             <Button 
               type="submit" 
               size="icon" 
               disabled={!input.trim() || isTyping || !user}
-              className="h-10 w-10 md:h-12 md:w-12 rounded-full absolute right-1 bg-primary text-primary-foreground hover:bg-primary/90 transition-transform active:scale-95"
+              className="h-10 w-10 md:h-12 md:w-12 rounded-full absolute right-1.5 md:right-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-transform active:scale-95"
             >
               <Send className="w-4 h-4 md:w-5 md:h-5" />
             </Button>
           </form>
-          <p className="text-center text-[8px] md:text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-3 md:mt-4 font-bold">
+          <p className="text-center text-[8px] md:text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-4 font-bold">
             Temporal link status: {user ? 'Stable' : 'Offline'}
           </p>
         </div>

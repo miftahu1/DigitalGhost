@@ -1,4 +1,3 @@
-
 "use client";
 
 import { motion } from "framer-motion";
@@ -21,7 +20,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useUser, useDoc, useFirestore } from "@/firebase";
 import { doc } from "firebase/firestore";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -63,7 +62,7 @@ export default function LandingPage() {
                   transition={{ delay: 0.2 }}
                 >
                   <Avatar className="w-28 h-28 mx-auto border-4 border-primary/20 p-1 shadow-2xl shadow-primary/20">
-                    <AvatarImage src={user.photoURL || ""} />
+                    <AvatarImage src={user.photoURL || ""} className="object-cover rounded-full" />
                     <AvatarFallback className="bg-primary/10 text-primary">
                       <UserIcon className="w-12 h-12" />
                     </AvatarFallback>
@@ -98,7 +97,7 @@ export default function LandingPage() {
                             <span className="flex items-center gap-2"><s.icon className="w-3 h-3" /> {s.label}</span>
                             <span>{s.val}%</span>
                           </div>
-                          <Progress value={s.val} className={`h-1 bg-white/5 ${s.color}`} />
+                          <Progress value={s.val} className={`h-1 bg-white/5 [&>div]:${s.color}`} />
                         </div>
                       ))}
                     </div>
@@ -139,18 +138,19 @@ export default function LandingPage() {
                 <div className="flex justify-center">
                   <motion.div 
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="p-1 rounded-full glass-morphism border-white/10 relative group w-[120px] h-[120px] flex items-center justify-center overflow-hidden"
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="p-1 rounded-full glass-morphism border-white/10 relative group w-[160px] h-[160px] md:w-[200px] md:h-[200px] flex items-center justify-center overflow-hidden"
                   >
                     <div className="absolute -inset-4 bg-primary/20 rounded-full blur-2xl group-hover:bg-primary/30 transition-all" />
-                    <Image 
-                      src="/logo/logo.png" 
-                      alt="Digital Ghost Logo" 
-                      width={120} 
-                      height={120} 
-                      priority
-                      className="relative z-10 rounded-full object-cover"
-                    />
+                    <div className="relative z-10 w-full h-full rounded-full overflow-hidden border-2 border-white/10">
+                      <Image 
+                        src="/logo/logo.png" 
+                        alt="Digital Ghost Logo" 
+                        fill
+                        priority
+                        className="object-cover rounded-full"
+                      />
+                    </div>
                   </motion.div>
                 </div>
 
@@ -163,7 +163,7 @@ export default function LandingPage() {
                   >
                     Transcending Biological Limits
                   </motion.span>
-                  <h1 className="font-headline text-7xl md:text-9xl tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent font-bold">
+                  <h1 className="font-headline text-5xl md:text-9xl tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent font-bold">
                     DIGITAL GHOST
                   </h1>
                 </div>
@@ -203,7 +203,7 @@ export default function LandingPage() {
                 { 
                   icon: Video, 
                   title: "Neural Cinema", 
-                  desc: "Convert text-based memories into 5-second cinematic dreamscapes using state-of-the-art Veo AI.",
+                  desc: "Convert text-based memories into cinematic video clips using state-of-the-art Veo AI.",
                   accent: "text-white"
                 },
                 { 
@@ -243,16 +243,16 @@ export default function LandingPage() {
             </section>
 
             {/* Cinematic Section */}
-            <section className="relative h-[600px] flex items-center justify-center">
-              <div className="absolute inset-0 glass-morphism rounded-[4rem] border-white/5 overflow-hidden">
+            <section className="relative h-[400px] md:h-[600px] flex items-center justify-center">
+              <div className="absolute inset-0 glass-morphism rounded-[2.5rem] md:rounded-[4rem] border-white/5 overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
                 <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                  <Globe className="w-[500px] h-[500px] text-primary animate-pulse" />
+                  <Globe className="w-[300px] h-[300px] md:w-[500px] md:h-[500px] text-primary animate-pulse" />
                 </div>
               </div>
-              <div className="relative z-10 text-center space-y-8 max-w-3xl">
-                <h2 className="font-headline text-5xl font-bold">The Universe is Information.</h2>
-                <p className="text-xl text-muted-foreground font-light">
+              <div className="relative z-10 text-center space-y-8 max-w-3xl px-6">
+                <h2 className="font-headline text-3xl md:text-5xl font-bold">The Universe is Information.</h2>
+                <p className="text-lg md:text-xl text-muted-foreground font-light">
                   Don't let your frequencies fade into silence. Join the thousands who are mapping their consciousness onto the eternal grid.
                 </p>
                 <Button variant="outline" asChild size="lg" className="h-16 px-12 rounded-full border-white/20 glass-morphism hover:bg-white/10">
