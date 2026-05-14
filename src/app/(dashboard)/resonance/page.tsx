@@ -2,14 +2,15 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, Sparkles, Send, Bot, User, ArrowLeft } from "lucide-react";
+import { MessageSquare, Sparkles, Send, Bot, User, ArrowLeft, AlertCircle } from "lucide-react";
 import { futureSelfChat } from "@/ai/flows/future-self-chat-flow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { useUser, useFirestore } from "@/firebase";
-import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useUser, useFirestore, useCollection } from "@/firebase";
+import { collection, doc, setDoc, serverTimestamp, query, orderBy, limit } from "firebase/firestore";
 
 type Message = {
   id: string;
@@ -17,9 +18,12 @@ type Message = {
   content: string;
 };
 
+export const maxDuration = 60; // Increase timeout for AI generation
+
 export default function ResonancePage() {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -30,6 +34,14 @@ export default function ResonancePage() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch recent memories to provide context to the future self
+  const memoriesQuery = query(
+    collection(db || { type: 'dummy' } as any, "users", user?.uid || "dummy", "memories"),
+    orderBy("createdAt", "desc"),
+    limit(5)
+  );
+  const { data: recentMemories } = useCollection(user ? memoriesQuery : null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -46,9 +58,13 @@ export default function ResonancePage() {
     setIsTyping(true);
 
     try {
+      const memoryContext = recentMemories 
+        ? recentMemories.map(m => `[${formatDate(m.createdAt)}] ${m.content}`).join("\n")
+        : "No previous memories found.";
+
       const response = await futureSelfChat({
         userMessage: input,
-        memoryContext: `This user is ${user.displayName || 'a digital ghost'}. They are currently interacting with their temporal reflection.`,
+        memoryContext: memoryContext,
       });
 
       const assistantMsg: Message = {
@@ -60,11 +76,10 @@ export default function ResonancePage() {
       setMessages((prev) => [...prev, assistantMsg]);
 
       // Archive this temporal interaction
-      const interactionId = doc(collection(db, 'placeholder')).id;
-      const interactionRef = doc(db, 'users', user.uid, 'memories', interactionId);
+      const interactionRef = doc(collection(db, 'users', user.uid, 'memories'));
       await setDoc(interactionRef, {
-        content: `Prompt: ${input}\n\nFuture Response: ${response.response}`,
-        type: 'vocal', // Categorized as vocal echo/dialogue
+        content: `Dialogue with Future Self\nYounger Me: ${input}\nFuture Me: ${response.response}`,
+        type: 'vocal',
         createdAt: serverTimestamp(),
         userId: user.uid,
         mood: 'reflective',
@@ -74,11 +89,25 @@ export default function ResonancePage() {
         }
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Temporal Link Disrupted",
+        description: "The connection to your future self was lost. This often happens during periods of high solar activity... or server maintenance. Please try again."
+      });
+      // Optionally remove the last user message if the AI failed
+      setMessages(prev => prev.slice(0, -1));
+      setInput(input); // Restore input
     } finally {
       setIsTyping(false);
     }
+  };
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return "Unknown Date";
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleDateString();
   };
 
   return (
@@ -89,7 +118,7 @@ export default function ResonancePage() {
             <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
           </Link>
           <div>
-            <h1 className="font-headline text-xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+            <h1 className="font-headline text-xl md:text-3xl font-bold flex items-center gap-2 md:gap-3 text-white">
               Resonance <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-primary animate-pulse" />
             </h1>
             <p className="text-[10px] md:text-sm text-muted-foreground font-light uppercase tracking-wider">Simulation: Future Self (T+10 Years)</p>
@@ -159,7 +188,7 @@ export default function ResonancePage() {
               onChange={(e) => setInput(e.target.value)}
               placeholder={user ? "Tell me what's on your mind..." : "Log in to resonate..."}
               disabled={!user || isTyping}
-              className="h-12 md:h-14 bg-white/5 border-white/10 rounded-full px-5 md:px-6 focus:ring-primary/50 font-light text-sm md:text-base"
+              className="h-12 md:h-14 bg-white/5 border-white/10 rounded-full px-5 md:px-6 focus:ring-primary/50 font-light text-sm md:text-base text-white"
             />
             <Button 
               type="submit" 
