@@ -24,8 +24,15 @@ export type FutureSelfChatOutput = z.infer<typeof FutureSelfChatOutputSchema>;
 export async function futureSelfChat(input: FutureSelfChatInput): Promise<FutureSelfChatOutput> {
   try {
     return await futureSelfChatFlow(input);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Future Self Flow Error:", error);
+    // Explicitly handle common Genkit/API errors
+    if (error.message?.includes("API key expired")) {
+      throw new Error("API key expired. Please renew the GOOGLE_GENAI_API_KEY in Vercel.");
+    }
+    if (error.message?.includes("404")) {
+      throw new Error("AI Model not found or unavailable. Link disrupted.");
+    }
     throw error;
   }
 }

@@ -20,7 +20,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useUser, useDoc, useFirestore } from "@/firebase";
 import { doc } from "firebase/firestore";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -142,13 +142,14 @@ export default function LandingPage() {
                     className="p-1 rounded-full glass-morphism border-white/10 relative group w-[160px] h-[160px] md:w-[200px] md:h-[200px] flex items-center justify-center overflow-hidden"
                   >
                     <div className="absolute -inset-4 bg-primary/20 rounded-full blur-2xl group-hover:bg-primary/30 transition-all" />
-                    <div className="relative z-10 w-full h-full rounded-full overflow-hidden border-2 border-white/10">
+                    <div className="relative z-10 w-full h-full rounded-full overflow-hidden border-2 border-white/10 flex items-center justify-center">
                       <Image 
                         src="/logo/logo.png" 
                         alt="Digital Ghost Logo" 
-                        fill
+                        width={200}
+                        height={200}
                         priority
-                        className="object-cover rounded-full"
+                        className="object-cover w-full h-full rounded-full"
                       />
                     </div>
                   </motion.div>

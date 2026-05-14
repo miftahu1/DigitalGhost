@@ -1,9 +1,8 @@
-
 "use client";
 
-import { useMemo, useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { History, Calendar, Search, Trash2, Undo2, AlertTriangle, Loader2 } from "lucide-react";
+import { useMemo, useState, useRef } from "react";
+import { motion } from "framer-motion";
+import { Calendar, Search, Trash2, Undo2, AlertTriangle, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
