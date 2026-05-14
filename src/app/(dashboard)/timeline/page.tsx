@@ -1,8 +1,9 @@
+
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { History, Calendar, Search, Trash2, Undo2, AlertTriangle } from "lucide-react";
+import { History, Calendar, Search, Trash2, Undo2, AlertTriangle, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +28,10 @@ export default function TimelinePage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const deleteTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [pendingDeletions, setPendingDeletions] = useState<Record<string, number>>({});
+  
+  const deletionTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
   const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -48,40 +51,47 @@ export default function TimelinePage() {
     );
   }, [memories, searchTerm]);
 
-  const performDelete = async (id: string) => {
-    if (!user || !db) return;
+  const startCountdown = (id: string) => {
+    setPendingDeletions(prev => ({ ...prev, [id]: 10 }));
     
-    // We start the delete process but offer an undo window via state management or toast
-    // For this prototype, we'll use a toast with an 'Undo' button that clears a timer
-    toast({
-      title: "Echo Disintegrating",
-      description: "Memory will be purged in 10 seconds.",
-      action: (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="rounded-full border-white/20"
-          onClick={() => {
-            if (deleteTimeout.current) {
-              clearTimeout(deleteTimeout.current);
-              deleteTimeout.current = null;
-              toast({ title: "Operation Aborted", description: "The echo remains intact." });
-            }
-          }}
-        >
-          <Undo2 className="w-4 h-4 mr-2" /> Undo
-        </Button>
-      ),
-    });
+    const interval = setInterval(() => {
+      setPendingDeletions(prev => {
+        const current = prev[id];
+        if (current <= 1) {
+          clearInterval(interval);
+          finalizeDelete(id);
+          const newMap = { ...prev };
+          delete newMap[id];
+          return newMap;
+        }
+        return { ...prev, [id]: current - 1 };
+      });
+    }, 1000);
 
-    deleteTimeout.current = setTimeout(async () => {
-      try {
-        await deleteDoc(doc(db, "users", user.uid, "memories", id));
-        deleteTimeout.current = null;
-      } catch (e) {
-        toast({ variant: "destructive", title: "Dissolution Failed" });
-      }
-    }, 10000);
+    deletionTimers.current[id] = interval;
+  };
+
+  const cancelDelete = (id: string) => {
+    if (deletionTimers.current[id]) {
+      clearInterval(deletionTimers.current[id]);
+      delete deletionTimers.current[id];
+    }
+    setPendingDeletions(prev => {
+      const newMap = { ...prev };
+      delete newMap[id];
+      return newMap;
+    });
+    toast({ title: "Operation Aborted", description: "The memory remains intact." });
+  };
+
+  const finalizeDelete = async (id: string) => {
+    if (!user || !db) return;
+    try {
+      await deleteDoc(doc(db, "users", user.uid, "memories", id));
+      toast({ title: "Echo Faded", description: "Memory purged from the neural vault." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Dissolution Failed" });
+    }
   };
 
   return (
@@ -109,95 +119,125 @@ export default function TimelinePage() {
 
         <div className="space-y-20 relative">
           {loading ? (
-            <div className="text-center py-20 text-muted-foreground">Syncing with neural archive...</div>
+            <div className="flex flex-col items-center py-20 gap-4">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Syncing with neural archive...</p>
+            </div>
           ) : filteredMemories.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground italic">No echoes found in this temporal slice.</div>
+            <div className="text-center py-20 text-muted-foreground italic glass-morphism rounded-3xl p-10">
+              No echoes found in this temporal slice.
+            </div>
           ) : (
-            filteredMemories.map((memory: any, idx: number) => (
-              <motion.div
-                key={memory.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                className={`flex flex-col md:flex-row items-center gap-8 ${idx % 2 === 0 ? "md:flex-row-reverse" : ""}`}
-              >
-                <div className="w-full md:w-1/2">
-                  <Card className="glass-morphism border-white/5 bg-white/5 hover:bg-white/10 transition-all group overflow-hidden">
-                    <div className={`h-1 w-full bg-gradient-to-r ${idx % 2 === 0 ? "from-primary to-accent" : "from-accent to-primary"} opacity-40`} />
-                    <CardContent className="p-8 space-y-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[10px] font-bold tracking-widest uppercase border-primary/20 text-primary">
-                            {memory.type}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground font-light tracking-wide">
-                            {memory.createdAt?.seconds 
-                              ? format(new Date(memory.createdAt.seconds * 1000), "MMMM d, yyyy") 
-                              : "Momentarily..."}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{memory.mood}</span>
+            filteredMemories.map((memory: any, idx: number) => {
+              const isPending = pendingDeletions[memory.id] !== undefined;
+              const countdown = pendingDeletions[memory.id];
+
+              return (
+                <motion.div
+                  key={memory.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  className={`flex flex-col md:flex-row items-center gap-8 ${idx % 2 === 0 ? "md:flex-row-reverse" : ""}`}
+                >
+                  <div className="w-full md:w-1/2 relative">
+                    <Card className={`glass-morphism border-white/5 transition-all group overflow-hidden relative ${isPending ? 'grayscale opacity-50' : 'bg-white/5 hover:bg-white/10'}`}>
+                      {isPending && (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md space-y-4">
+                          <div className="text-4xl font-headline font-bold text-primary animate-pulse">{countdown}s</div>
+                          <p className="text-xs uppercase tracking-[0.3em] font-bold">Dissolving Memory...</p>
                           <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => setDeleteId(memory.id)}
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => cancelDelete(memory.id)}
+                            className="rounded-full border-primary/50 text-primary hover:bg-primary/10"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Undo2 className="w-4 h-4 mr-2" /> UNDO
                           </Button>
                         </div>
-                      </div>
-                      <p className="text-lg font-light leading-relaxed text-foreground/90 group-hover:text-white transition-colors whitespace-pre-wrap">
-                        {memory.content}
-                      </p>
-                      {memory.type === 'cinema' && memory.analysis?.videoUrl && (
-                        <video 
-                          src={memory.analysis.videoUrl} 
-                          controls 
-                          className="w-full rounded-xl border border-white/10 mt-4" 
-                        />
                       )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="hidden md:flex relative z-10 w-12 h-12 rounded-full glass items-center justify-center border-white/10 shrink-0">
-                  <div className={`w-4 h-4 rounded-full animate-pulse ${idx % 2 === 0 ? "bg-primary" : "bg-accent"}`} />
-                </div>
-
-                <div className="w-full md:w-1/2 hidden md:block">
-                  <div className="flex items-center gap-4 px-10">
-                    <Calendar className="w-5 h-5 text-muted-foreground/30" />
-                    <div className="h-px flex-1 bg-white/5" />
+                      
+                      <div className={`h-1 w-full bg-gradient-to-r ${idx % 2 === 0 ? "from-primary to-accent" : "from-accent to-primary"} opacity-40`} />
+                      <CardContent className="p-8 space-y-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px] font-bold tracking-widest uppercase border-primary/20 text-primary">
+                              {memory.type}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground font-light tracking-wide">
+                              {memory.createdAt?.seconds 
+                                ? format(new Date(memory.createdAt.seconds * 1000), "MMMM d, yyyy") 
+                                : "Momentarily..."}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{memory.mood}</span>
+                            {!isPending && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => setConfirmDeleteId(memory.id)}
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-lg font-light leading-relaxed text-foreground/90 group-hover:text-white transition-colors whitespace-pre-wrap">
+                          {memory.content}
+                        </p>
+                        {memory.type === 'cinema' && memory.analysis?.videoUrl && (
+                          <div className="mt-4 relative group/video">
+                             <video 
+                              src={memory.analysis.videoUrl} 
+                              controls 
+                              className="w-full rounded-2xl border border-white/10 shadow-2xl" 
+                            />
+                            <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-background/40 to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity" />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
-                </div>
-              </motion.div>
-            ))
+
+                  <div className="hidden md:flex relative z-10 w-12 h-12 rounded-full glass items-center justify-center border-white/10 shrink-0">
+                    <div className={`w-4 h-4 rounded-full animate-pulse ${idx % 2 === 0 ? "bg-primary" : "bg-accent"}`} />
+                  </div>
+
+                  <div className="w-full md:w-1/2 hidden md:block">
+                    <div className="flex items-center gap-4 px-10">
+                      <Calendar className="w-5 h-5 text-muted-foreground/30" />
+                      <div className="h-px flex-1 bg-white/5" />
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
           )}
         </div>
       </div>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog open={!!confirmDeleteId} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
         <AlertDialogContent className="glass-morphism border-destructive/20 bg-background/95 backdrop-blur-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-5 h-5" /> Confirm Dissolution
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive font-headline">
+              <AlertTriangle className="w-5 h-5" /> Confirm Memory Dissolution
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this memory? This will remove it from your digital soul's evolution map.
+            <AlertDialogDescription className="text-muted-foreground font-light leading-relaxed">
+              Are you sure you want to begin the deletion sequence? This will permanently erase the memory from your digital archive.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-full border-white/10">Keep Echo</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
-                if (deleteId) performDelete(deleteId);
-                setDeleteId(null);
+                if (confirmDeleteId) startCountdown(confirmDeleteId);
+                setConfirmDeleteId(null);
               }}
-              className="bg-destructive hover:bg-destructive/90 rounded-full"
+              className="bg-destructive hover:bg-destructive/90 rounded-full font-headline uppercase tracking-widest text-xs h-10"
             >
-              Dissolve Memory
+              Start Deletion Sequence
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
