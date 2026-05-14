@@ -10,27 +10,29 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-// Input schema for the future self chat
 const FutureSelfChatInputSchema = z.object({
   userMessage: z.string().describe("The user's current message or question."),
   memoryContext: z.string().describe("A summary of the user's accumulated memories and reflections relevant to the current conversation."),
 });
 export type FutureSelfChatInput = z.infer<typeof FutureSelfChatInputSchema>;
 
-// Output schema for the future self chat
 const FutureSelfChatOutputSchema = z.object({
   response: z.string().describe("The AI's response as the user's future self, offering guidance and perspective."),
 });
 export type FutureSelfChatOutput = z.infer<typeof FutureSelfChatOutputSchema>;
 
-// Wrapper function to call the Genkit flow
 export async function futureSelfChat(input: FutureSelfChatInput): Promise<FutureSelfChatOutput> {
-  return futureSelfChatFlow(input);
+  try {
+    return await futureSelfChatFlow(input);
+  } catch (error) {
+    console.error("Future Self Flow Error:", error);
+    throw error;
+  }
 }
 
-// Define the prompt for the future self AI
-const prompt = ai.definePrompt({
+const futureSelfChatPrompt = ai.definePrompt({
   name: 'futureSelfChatPrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: {schema: FutureSelfChatInputSchema},
   output: {schema: FutureSelfChatOutputSchema},
   prompt: `You are the user's future self, specifically from 10 years into the future. You are older, wiser, and have navigated the very challenges they are facing now. 
@@ -53,7 +55,6 @@ Current Message from your younger self:
 {{{userMessage}}}`,
 });
 
-// Define the Genkit flow for the future self chat
 const futureSelfChatFlow = ai.defineFlow(
   {
     name: 'futureSelfChatFlow',
@@ -61,7 +62,7 @@ const futureSelfChatFlow = ai.defineFlow(
     outputSchema: FutureSelfChatOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
+    const {output} = await futureSelfChatPrompt(input);
     if (!output) {
       return {
         response: "I'm here, but the connection to the future feels a bit clouded right now. Take a deep breath—we'll talk again soon."

@@ -35,7 +35,6 @@ export default function ResonancePage() {
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Safely memoize the query to prevent Firestore 400 errors during auth transition
   const memoriesQuery = useMemo(() => {
     if (!db || !user?.uid) return null;
     return query(
@@ -82,11 +81,10 @@ export default function ResonancePage() {
       
       setMessages((prev) => [...prev, assistantMsg]);
 
-      // Archive interaction
       const interactionRef = doc(collection(db, 'users', user.uid, 'memories'));
       await setDoc(interactionRef, {
         content: `Dialogue with Future Self\nYounger Me: ${input}\nFuture Me: ${response.response}`,
-        type: 'vocal',
+        type: 'journal',
         createdAt: serverTimestamp(),
         userId: user.uid,
         mood: 'reflective',
@@ -101,9 +99,8 @@ export default function ResonancePage() {
       toast({
         variant: "destructive",
         title: "Temporal Link Disrupted",
-        description: "The connection to your future self is unstable. Ensure your GOOGLE_GENAI_API_KEY is set in Vercel settings."
+        description: "The connection to your future self is unstable. Please verify your Gemini API key in Vercel settings."
       });
-      setIsTyping(false);
     } finally {
       setIsTyping(false);
     }
