@@ -125,9 +125,9 @@ export default function ResonancePage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] md:h-[calc(100vh-140px)] max-w-4xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-180px)] max-w-4xl mx-auto relative">
       {/* Header - Simple & Clean */}
-      <header className="flex items-center justify-between py-4 border-b border-white/5">
+      <header className="flex items-center justify-between py-4 border-b border-white/5 sticky top-0 bg-background/50 backdrop-blur-md z-20">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full transition-colors">
             <ArrowLeft className="w-5 h-5 text-muted-foreground" />
@@ -140,13 +140,13 @@ export default function ResonancePage() {
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Legacy Dialogue Active</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
           <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
           <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">E2EE Tunnel</span>
         </div>
       </header>
 
-      {/* Message List - Full page scrolling */}
+      {/* Message List */}
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto py-8 space-y-8 scroll-smooth custom-scrollbar"
@@ -202,10 +202,10 @@ export default function ResonancePage() {
       </div>
 
       {/* Input Area - Pinned at Bottom */}
-      <footer className="py-6 bg-background/80 backdrop-blur-sm sticky bottom-0">
+      <footer className="py-4 bg-background/80 backdrop-blur-md sticky bottom-0 z-20 border-t border-white/5">
         <form 
           onSubmit={handleSend}
-          className="relative max-w-3xl mx-auto flex items-end gap-2 group"
+          className="relative max-w-3xl mx-auto flex items-end gap-2 group px-2 sm:px-0"
         >
           <div className="relative flex-1">
             <Input
@@ -229,7 +229,7 @@ export default function ResonancePage() {
             </Button>
           </div>
         </form>
-        <p className="mt-4 text-center text-[10px] text-muted-foreground/30 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2">
+        <p className="mt-3 text-center text-[8px] sm:text-[10px] text-muted-foreground/30 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2">
           <Lock className="w-3 h-3" /> Secure Neural Tunnel Active
         </p>
       </footer>
