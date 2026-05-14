@@ -24,6 +24,7 @@ import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 export default function LandingPage() {
   const { user, loading } = useUser();
@@ -97,7 +98,7 @@ export default function LandingPage() {
                             <span className="flex items-center gap-2"><s.icon className="w-3 h-3" /> {s.label}</span>
                             <span>{s.val}%</span>
                           </div>
-                          <Progress value={s.val} className={`h-1 bg-white/5 [&>div]:${s.color}`} />
+                          <Progress value={s.val} className={`h-1 bg-white/5`} />
                         </div>
                       ))}
                     </div>
@@ -139,17 +140,17 @@ export default function LandingPage() {
                   <motion.div 
                     animate={{ rotate: 360 }}
                     transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="p-1 rounded-full glass-morphism border-white/10 relative group w-[160px] h-[160px] md:w-[200px] md:h-[200px] flex items-center justify-center overflow-hidden"
+                    className="rounded-full glass-morphism border-white/10 relative group w-[160px] h-[160px] md:w-[200px] md:h-[200px] flex items-center justify-center overflow-hidden aspect-square"
                   >
                     <div className="absolute -inset-4 bg-primary/20 rounded-full blur-2xl group-hover:bg-primary/30 transition-all" />
-                    <div className="relative z-10 w-full h-full rounded-full overflow-hidden border-2 border-white/10 flex items-center justify-center">
+                    <div className="relative z-10 w-full h-full rounded-full overflow-hidden border-2 border-white/10 flex items-center justify-center aspect-square">
                       <Image 
                         src="/logo/logo.png" 
                         alt="Digital Ghost Logo" 
                         width={200}
                         height={200}
                         priority
-                        className="object-cover w-full h-full rounded-full"
+                        className="object-cover w-full h-full rounded-full aspect-square"
                       />
                     </div>
                   </motion.div>
@@ -270,13 +271,5 @@ export default function LandingPage() {
         Neural Resilience Protocol Active • © 2024 Digital Ghost
       </footer>
     </main>
-  );
-}
-
-function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
-  return (
-    <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold ${className}`}>
-      {children}
-    </span>
   );
 }

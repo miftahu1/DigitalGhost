@@ -1,4 +1,3 @@
-
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
@@ -17,8 +16,7 @@ import {
   LogOut,
   User as UserIcon,
   Menu,
-  X,
-  Search
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useAuth } from "@/firebase";
@@ -61,13 +59,13 @@ export function Sidebar() {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 glass-morphism border-b border-white/5 z-[60]">
         <Link href="/" className="flex items-center gap-2">
-          <div className="relative w-8 h-8 flex items-center justify-center overflow-hidden rounded-full border border-white/10">
+          <div className="relative w-8 h-8 flex items-center justify-center overflow-hidden rounded-full border border-white/10 aspect-square">
             <Image 
               src="/logo/logo.png" 
               alt="Digital Ghost Icon" 
               width={32} 
               height={32} 
-              className="object-cover rounded-full"
+              className="object-cover rounded-full aspect-square"
             />
           </div>
           <span className="font-headline text-sm font-bold tracking-tight text-glow uppercase">
@@ -97,13 +95,13 @@ export function Sidebar() {
       )}>
         <div className="p-6 hidden md:flex items-center gap-3">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10 flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden rounded-full border border-white/10">
+            <div className="relative w-10 h-10 flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden rounded-full border border-white/10 aspect-square">
               <Image 
                 src="/logo/logo.png" 
                 alt="Digital Ghost Logo" 
                 width={40} 
                 height={40} 
-                className="object-cover rounded-full"
+                className="object-cover rounded-full aspect-square"
               />
             </div>
             <span className="font-headline text-lg font-bold tracking-tight text-glow uppercase">

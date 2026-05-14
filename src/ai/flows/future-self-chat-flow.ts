@@ -31,7 +31,7 @@ export async function futureSelfChat(input: FutureSelfChatInput): Promise<Future
       throw new Error("API key expired. Please renew the GOOGLE_GENAI_API_KEY in Vercel.");
     }
     if (error.message?.includes("404")) {
-      throw new Error("AI Model not found or unavailable. Link disrupted.");
+      throw new Error("AI Model (Gemini 2.5 Flash) not found or unavailable. Check API access.");
     }
     throw error;
   }
@@ -39,7 +39,7 @@ export async function futureSelfChat(input: FutureSelfChatInput): Promise<Future
 
 const futureSelfChatPrompt = ai.definePrompt({
   name: 'futureSelfChatPrompt',
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash',
   input: {schema: FutureSelfChatInputSchema},
   output: {schema: FutureSelfChatOutputSchema},
   prompt: `You are the user's future self, specifically from 10 years into the future. You are older, wiser, and have navigated the very challenges they are facing now. 
