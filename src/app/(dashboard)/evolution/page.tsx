@@ -34,19 +34,30 @@ export default function EvolutionPage() {
   const [filter, setFilter] = useState<FilterRange>("monthly");
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
-  const userRef = useMemo(() => {
-    if (!db || !user) return null;
-    return doc(db, "users", user.uid);
-  }, [db, user]);
-
-  const { data: profile, loading: profileLoading } = useDoc(userRef);
-
   const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
     return query(collection(db, "users", user.uid, "memories"), orderBy("createdAt", "asc"));
   }, [db, user]);
 
-  const { data: memories } = useCollection(memoriesQuery);
+  const { data: memories, loading: memoriesLoading } = useCollection(memoriesQuery);
+
+  const derivedStats = useMemo(() => {
+    if (!memories) return { resilience: 50, empathy: 50, clarity: 50, openness: 50 };
+    
+    const counts = {
+      journal: memories.filter(m => m.type === 'journal').length,
+      dream: memories.filter(m => m.type === 'dream').length,
+      vocal: memories.filter(m => m.type === 'vocal').length,
+      resonance: memories.filter(m => m.content?.includes('Dialogue with Future Self')).length,
+    };
+
+    return {
+      resilience: Math.min(100, 30 + (counts.journal * 3)),
+      empathy: Math.min(100, 30 + (counts.resonance * 8)),
+      clarity: Math.min(100, 30 + (counts.dream * 7)),
+      openness: Math.min(100, 30 + (counts.vocal * 6)),
+    };
+  }, [memories]);
 
   const chartData = useMemo(() => {
     if (!memories || memories.length === 0) return [];
@@ -173,10 +184,10 @@ export default function EvolutionPage() {
   };
 
   const stats = [
-    { label: "Resilience", value: profile?.stats?.resilience ?? 50, icon: Zap, color: "text-primary" },
-    { label: "Empathy", value: profile?.stats?.empathy ?? 50, icon: Heart, color: "text-accent" },
-    { label: "Clarity", value: profile?.stats?.clarity ?? 50, icon: Sparkles, color: "text-white" },
-    { label: "Openness", value: profile?.stats?.openness ?? 50, icon: TrendingUp, color: "text-secondary" },
+    { label: "Resilience", value: derivedStats.resilience, icon: Zap, color: "text-primary" },
+    { label: "Empathy", value: derivedStats.empathy, icon: Heart, color: "text-accent" },
+    { label: "Clarity", value: derivedStats.clarity, icon: Sparkles, color: "text-white" },
+    { label: "Openness", value: derivedStats.openness, icon: TrendingUp, color: "text-secondary" },
   ];
 
   const recentSyntheses = useMemo(() => 
@@ -213,7 +224,7 @@ export default function EvolutionPage() {
               <CardTitle className="font-headline text-lg font-medium tracking-wide">Personality Vector Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {profileLoading ? (
+              {memoriesLoading ? (
                 <div className="flex flex-col items-center py-10 gap-2">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   <span className="text-[10px] uppercase tracking-widest text-muted-foreground text-center">Calculating Vectors...</span>

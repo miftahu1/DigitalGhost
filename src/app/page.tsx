@@ -1,3 +1,4 @@
+
 "use client";
 
 import { motion } from "framer-motion";
@@ -18,8 +19,8 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { useUser, useDoc, useFirestore } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useUser, useFirestore, useCollection } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,12 +31,30 @@ export default function LandingPage() {
   const { user, loading } = useUser();
   const db = useFirestore();
 
-  const userRef = useMemo(() => {
+  const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
-    return doc(db, "users", user.uid);
+    return query(collection(db, "users", user.uid, "memories"), orderBy("createdAt", "asc"));
   }, [db, user]);
 
-  const { data: profile } = useDoc(userRef);
+  const { data: memories } = useCollection(memoriesQuery);
+
+  const derivedStats = useMemo(() => {
+    if (!memories) return { resilience: 50, empathy: 50, clarity: 50, openness: 50 };
+    
+    const counts = {
+      journal: memories.filter(m => m.type === 'journal').length,
+      dream: memories.filter(m => m.type === 'dream').length,
+      vocal: memories.filter(m => m.type === 'vocal').length,
+      resonance: memories.filter(m => m.content?.includes('Dialogue with Future Self')).length,
+    };
+
+    return {
+      resilience: Math.min(100, 30 + (counts.journal * 3)),
+      empathy: Math.min(100, 30 + (counts.resonance * 8)),
+      clarity: Math.min(100, 30 + (counts.dream * 7)),
+      openness: Math.min(100, 30 + (counts.vocal * 6)),
+    };
+  }, [memories]);
 
   if (loading) return null;
 
@@ -89,9 +108,9 @@ export default function LandingPage() {
                     </div>
                     <div className="space-y-6">
                       {[
-                        { label: "Resilience", val: profile?.stats?.resilience || 50, color: "bg-primary", icon: Globe },
-                        { label: "Empathy", val: profile?.stats?.empathy || 50, color: "bg-accent", icon: Heart },
-                        { label: "Clarity", val: profile?.stats?.clarity || 50, color: "bg-white", icon: Brain },
+                        { label: "Resilience", val: derivedStats.resilience, color: "bg-primary", icon: Globe },
+                        { label: "Empathy", val: derivedStats.empathy, color: "bg-accent", icon: Heart },
+                        { label: "Clarity", val: derivedStats.clarity, color: "bg-white", icon: Brain },
                       ].map((s, i) => (
                         <div key={i} className="space-y-2">
                           <div className="flex justify-between text-xs text-muted-foreground uppercase tracking-[0.2em] font-bold">
