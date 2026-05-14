@@ -140,16 +140,16 @@ export default function LandingPage() {
                   <motion.div 
                     animate={{ rotate: 360 }}
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="p-6 rounded-full glass-morphism border-white/10 relative group"
+                    className="p-1 rounded-full glass-morphism border-white/10 relative group w-[120px] h-[120px] flex items-center justify-center overflow-hidden"
                   >
                     <div className="absolute -inset-4 bg-primary/20 rounded-full blur-2xl group-hover:bg-primary/30 transition-all" />
                     <Image 
                       src="/logo/logo.png" 
                       alt="Digital Ghost Logo" 
-                      width={100} 
-                      height={100} 
+                      width={120} 
+                      height={120} 
                       priority
-                      className="relative z-10"
+                      className="relative z-10 rounded-full object-cover"
                     />
                   </motion.div>
                 </div>
