@@ -28,6 +28,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +43,7 @@ export default function LandingPage() {
   const { user, loading } = useUser();
   const db = useFirestore();
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   useEffect(() => {
     const hasSeenPrivacy = localStorage.getItem('dg_privacy_seen');
@@ -51,7 +54,9 @@ export default function LandingPage() {
   }, []);
 
   const dismissPrivacy = () => {
-    localStorage.setItem('dg_privacy_seen', 'true');
+    if (dontShowAgain) {
+      localStorage.setItem('dg_privacy_seen', 'true');
+    }
     setShowPrivacyModal(false);
   };
 
@@ -325,19 +330,33 @@ export default function LandingPage() {
               Every memory, dream, and vocal echo is unreadable to anyone—including us—until it reaches your device. Your digital ghost is yours alone.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
-            <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center gap-2 text-center">
-              <Lock className="w-5 h-5 text-primary/60" />
-              <span className="text-[10px] uppercase font-bold tracking-widest text-primary/80">Zero Trust</span>
+          <div className="grid grid-cols-1 gap-4 py-4">
+            <div className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-white/5 border border-white/5">
+              <Checkbox 
+                id="dont-show-again" 
+                checked={dontShowAgain} 
+                onCheckedChange={(checked) => setDontShowAgain(!!checked)}
+                className="border-primary data-[state=checked]:bg-primary"
+              />
+              <Label htmlFor="dont-show-again" className="text-xs text-muted-foreground cursor-pointer select-none">
+                I understand. Don't show this notification again.
+              </Label>
             </div>
-            <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center gap-2 text-center">
-              <Shield className="w-5 h-5 text-accent/60" />
-              <span className="text-[10px] uppercase font-bold tracking-widest text-accent/80">E2EE Active</span>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center gap-2 text-center">
+                <Lock className="w-5 h-5 text-primary/60" />
+                <span className="text-[10px] uppercase font-bold tracking-widest text-primary/80">Zero Trust</span>
+              </div>
+              <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center gap-2 text-center">
+                <Shield className="w-5 h-5 text-accent/60" />
+                <span className="text-[10px] uppercase font-bold tracking-widest text-accent/80">E2EE Active</span>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={dismissPrivacy} className="w-full h-12 rounded-full font-headline tracking-widest uppercase text-sm">
-              Enter Neural Link
+            <Button onClick={dismissPrivacy} className="w-full h-12 rounded-full font-headline tracking-widest uppercase text-sm group relative overflow-hidden">
+              <span className="relative z-10">Enter Neural Link</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
             </Button>
           </DialogFooter>
         </DialogContent>
