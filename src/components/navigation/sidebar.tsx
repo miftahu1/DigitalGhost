@@ -1,7 +1,7 @@
 
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { 
@@ -13,9 +13,21 @@ import {
   Mic, 
   LineChart, 
   Ghost,
-  Search
+  Search,
+  LogOut,
+  User as UserIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUser, useAuth } from "@/firebase";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { signOut } from "firebase/auth";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
@@ -29,6 +41,14 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useUser();
+  const auth = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
 
   return (
     <aside className="w-20 md:w-64 glass-morphism border-r border-white/5 h-screen flex flex-col z-50">
@@ -43,7 +63,7 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -70,11 +90,43 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-white/5">
+      <div className="p-4 border-t border-white/5 space-y-2">
         <button className="w-full flex items-center gap-4 px-4 py-3 text-muted-foreground hover:text-white transition-colors">
           <Search className="w-6 h-6" strokeWidth={1.5} />
           <span className="hidden md:block font-body text-sm">Neural Search</span>
         </button>
+
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-white/5 transition-all text-left">
+                <Avatar className="w-8 h-8 border border-white/10">
+                  <AvatarImage src={user.photoURL || ""} />
+                  <AvatarFallback className="bg-primary/20 text-primary">
+                    <UserIcon className="w-4 h-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden md:block flex-1 overflow-hidden">
+                  <p className="text-sm font-medium truncate">{user.displayName || 'Neural Echo'}</p>
+                  <p className="text-[10px] text-muted-foreground truncate uppercase tracking-widest font-bold">Authenticated</p>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 glass-morphism border-white/10 bg-card/90 backdrop-blur-xl">
+              <div className="p-2 px-3 py-2">
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </div>
+              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuItem 
+                onClick={handleSignOut}
+                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Disconnect Echo
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </aside>
   );
