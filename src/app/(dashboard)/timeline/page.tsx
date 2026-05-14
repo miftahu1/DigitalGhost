@@ -1,8 +1,9 @@
+
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Search, Trash2, Undo2, AlertTriangle, Loader2 } from "lucide-react";
+import { Calendar, Search, Trash2, Undo2, AlertTriangle, Loader2, Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import { collection, query, orderBy, deleteDoc, doc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { decryptData } from "@/lib/encryption";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +29,8 @@ export default function TimelinePage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [decryptedMemories, setDecryptedMemories] = useState<any[]>([]);
+  const [isDecrypting, setIsDecrypting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [pendingDeletions, setPendingDeletions] = useState<Record<string, number>>({});
   
@@ -40,15 +44,30 @@ export default function TimelinePage() {
     );
   }, [db, user]);
 
-  const { data: memories, loading } = useCollection(memoriesQuery);
+  const { data: rawMemories, loading } = useCollection(memoriesQuery);
+
+  useEffect(() => {
+    async function processMemories() {
+      if (!rawMemories || !user?.uid) return;
+      setIsDecrypting(true);
+      const decrypted = await Promise.all(
+        rawMemories.map(async (m: any) => ({
+          ...m,
+          content: m.isEncrypted ? await decryptData(m.content, user.uid) : m.content
+        }))
+      );
+      setDecryptedMemories(decrypted);
+      setIsDecrypting(false);
+    }
+    processMemories();
+  }, [rawMemories, user?.uid]);
 
   const filteredMemories = useMemo(() => {
-    if (!memories) return [];
-    return memories.filter(m => 
+    return decryptedMemories.filter(m => 
       m.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.type.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [memories, searchTerm]);
+  }, [decryptedMemories, searchTerm]);
 
   const startCountdown = (id: string) => {
     setPendingDeletions(prev => ({ ...prev, [id]: 10 }));
@@ -95,16 +114,16 @@ export default function TimelinePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-10">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <header className="flex justify-between items-end">
         <div>
           <h1 className="font-headline text-4xl font-bold tracking-tight text-white">Chronicle Timeline</h1>
-          <p className="text-muted-foreground font-light text-lg mt-1">Scrolling through the chapters of your digital evolution.</p>
+          <p className="text-muted-foreground font-light text-lg mt-1">Scrolling through your securely encrypted evolution.</p>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
+        <div className="flex gap-3">
+          <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
-              placeholder="Search memories..." 
+              placeholder="Search decrypted memories..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 glass-morphism border-white/10 rounded-full text-white" 
@@ -114,13 +133,13 @@ export default function TimelinePage() {
       </header>
 
       <div className="relative">
-        <div className="absolute left-0 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-primary via-accent to-transparent md:-translate-x-1/2 opacity-30 hidden md:block" />
+        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-primary via-accent to-transparent -translate-x-1/2 opacity-30 hidden md:block" />
 
         <div className="space-y-20 relative">
-          {loading ? (
+          {(loading || isDecrypting) ? (
             <div className="flex flex-col items-center py-20 gap-4">
               <Loader2 className="w-10 h-10 text-primary animate-spin" />
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Syncing with neural archive...</p>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Decrypting neural archive locally...</p>
             </div>
           ) : filteredMemories.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground italic glass-morphism rounded-3xl p-10">
@@ -137,20 +156,15 @@ export default function TimelinePage() {
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-100px" }}
-                  className={`flex flex-col md:flex-row items-center gap-8 ${idx % 2 === 0 ? "md:flex-row-reverse" : ""}`}
+                  className={`flex items-center gap-8 ${idx % 2 === 0 ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  <div className="w-full md:w-1/2 relative">
+                  <div className="w-1/2 relative">
                     <Card className={`glass-morphism border-white/5 transition-all group overflow-hidden relative ${isPending ? 'grayscale opacity-50' : 'bg-white/5 hover:bg-white/10'}`}>
                       {isPending && (
                         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md space-y-4">
                           <div className="text-4xl font-headline font-bold text-primary animate-pulse">{countdown}s</div>
                           <p className="text-xs uppercase tracking-[0.3em] font-bold">Dissolving Memory...</p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => cancelDelete(memory.id)}
-                            className="rounded-full border-primary/50 text-primary hover:bg-primary/10"
-                          >
+                          <Button variant="outline" size="sm" onClick={() => cancelDelete(memory.id)} className="rounded-full border-primary/50 text-primary">
                             <Undo2 className="w-4 h-4 mr-2" /> UNDO
                           </Button>
                         </div>
@@ -163,14 +177,14 @@ export default function TimelinePage() {
                             <Badge variant="outline" className="text-[10px] font-bold tracking-widest uppercase border-primary/20 text-primary">
                               {memory.type}
                             </Badge>
-                            <span className="text-xs text-muted-foreground font-light tracking-wide">
+                            {memory.isEncrypted && <Lock className="w-3 h-3 text-primary/40" />}
+                            <span className="text-xs text-muted-foreground font-light">
                               {memory.createdAt?.seconds 
                                 ? format(new Date(memory.createdAt.seconds * 1000), "MMMM d, yyyy") 
-                                : "Momentarily..."}
+                                : "Syncing..."}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{memory.mood}</span>
                             {!isPending && (
                               <Button 
                                 variant="ghost" 
@@ -183,28 +197,18 @@ export default function TimelinePage() {
                             )}
                           </div>
                         </div>
-                        <p className="text-lg font-light leading-relaxed text-foreground/90 group-hover:text-white transition-colors whitespace-pre-wrap">
+                        <p className="text-lg font-light leading-relaxed text-foreground/90 group-hover:text-white transition-colors">
                           {memory.content}
                         </p>
-                        {memory.type === 'cinema' && memory.analysis?.videoUrl && (
-                          <div className="mt-4 relative group/video">
-                             <video 
-                              src={memory.analysis.videoUrl} 
-                              controls 
-                              className="w-full rounded-2xl border border-white/10 shadow-2xl" 
-                            />
-                            <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-background/40 to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity" />
-                          </div>
-                        )}
                       </CardContent>
                     </Card>
                   </div>
 
-                  <div className="hidden md:flex relative z-10 w-12 h-12 rounded-full glass items-center justify-center border-white/10 shrink-0">
+                  <div className="relative z-10 w-12 h-12 rounded-full glass flex items-center justify-center border-white/10 shrink-0">
                     <div className={`w-4 h-4 rounded-full animate-pulse ${idx % 2 === 0 ? "bg-primary" : "bg-accent"}`} />
                   </div>
 
-                  <div className="w-full md:w-1/2 hidden md:block">
+                  <div className="w-1/2">
                     <div className="flex items-center gap-4 px-10">
                       <Calendar className="w-5 h-5 text-muted-foreground/30" />
                       <div className="h-px flex-1 bg-white/5" />
