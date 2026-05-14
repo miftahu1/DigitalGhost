@@ -3,16 +3,17 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Bot, User, ArrowLeft, ShieldCheck, Lock, Sparkles, Loader2 } from "lucide-react";
+import { Send, Bot, User, ArrowLeft, ShieldCheck, Lock, Sparkles, Loader2, History as HistoryIcon, X, MessageSquare } from "lucide-react";
 import { futureSelfChat } from "@/ai/flows/future-self-chat-flow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useUser, useFirestore, useCollection } from "@/firebase";
-import { collection, doc, setDoc, serverTimestamp, query, orderBy, limit } from "firebase/firestore";
+import { collection, doc, setDoc, serverTimestamp, query, orderBy, limit, where } from "firebase/firestore";
 import { encryptData, decryptData } from "@/lib/encryption";
 import { format } from "date-fns";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 type Message = {
   id: string;
@@ -36,18 +37,51 @@ export default function ResonancePage() {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [decryptedHistory, setDecryptedHistory] = useState<any[]>([]);
+  const [isDecryptingHistory, setIsDecryptingHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const memoriesQuery = useMemo(() => {
+  // Context memories (Journal/Dreams only) for AI guidance
+  const contextQuery = useMemo(() => {
     if (!db || !user?.uid) return null;
     return query(
       collection(db, "users", user.uid, "memories"),
+      where('type', 'in', ['journal', 'dream']),
       orderBy("createdAt", "desc"),
-      limit(15)
+      limit(10)
     );
   }, [db, user?.uid]);
 
-  const { data: rawMemories } = useCollection(memoriesQuery);
+  const { data: rawContext } = useCollection(contextQuery);
+
+  // Resonance specific history query
+  const historyQuery = useMemo(() => {
+    if (!db || !user?.uid) return null;
+    return query(
+      collection(db, "users", user.uid, "memories"),
+      where('type', '==', 'resonance'),
+      orderBy("createdAt", "desc"),
+      limit(20)
+    );
+  }, [db, user?.uid]);
+
+  const { data: rawHistory, loading: historyLoading } = useCollection(historyQuery);
+
+  useEffect(() => {
+    async function processHistory() {
+      if (!rawHistory || !user?.uid) return;
+      setIsDecryptingHistory(true);
+      const decrypted = await Promise.all(
+        rawHistory.map(async (h: any) => ({
+          ...h,
+          content: h.isEncrypted ? await decryptData(h.content, user.uid) : h.content
+        }))
+      );
+      setDecryptedHistory(decrypted);
+      setIsDecryptingHistory(false);
+    }
+    processHistory();
+  }, [rawHistory, user?.uid]);
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -80,9 +114,9 @@ export default function ResonancePage() {
 
     try {
       const decryptedContexts = await Promise.all(
-        (rawMemories || []).map(async (m: any) => {
+        (rawContext || []).map(async (m: any) => {
           const content = m.isEncrypted ? await decryptData(m.content, user.uid) : m.content;
-          return `[${m.type} - ${format(new Date(m.createdAt?.seconds * 1000 || Date.now()), 'yyyy-MM-dd')}] ${content}`;
+          return `[${m.type}] ${content}`;
         })
       );
       
@@ -100,12 +134,13 @@ export default function ResonancePage() {
       
       setMessages((prev) => [...prev, assistantMsg]);
 
+      // Save as 'resonance' type so it doesn't clutter the main timeline
       const dialogue = `Younger Self: ${currentInput}\nFuture Self: ${response.response}`;
       const encryptedDialogue = await encryptData(dialogue, user.uid);
 
       await setDoc(doc(collection(db, 'users', user.uid, 'memories')), {
         content: encryptedDialogue,
-        type: 'journal',
+        type: 'resonance',
         createdAt: serverTimestamp(),
         userId: user.uid,
         mood: 'reflective',
@@ -117,7 +152,7 @@ export default function ResonancePage() {
       toast({ 
         variant: "destructive", 
         title: "Temporal Link Severed", 
-        description: error.message || "Failed to reach your future self. Check your network." 
+        description: error.message || "Failed to reach your future self." 
       });
     } finally {
       setIsTyping(false);
@@ -126,7 +161,6 @@ export default function ResonancePage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-180px)] max-w-4xl mx-auto relative">
-      {/* Header - Simple & Clean */}
       <header className="flex items-center justify-between py-4 border-b border-white/5 sticky top-0 bg-background/50 backdrop-blur-md z-20">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full transition-colors">
@@ -140,13 +174,50 @@ export default function ResonancePage() {
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Legacy Dialogue Active</p>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">E2EE Tunnel</span>
+        
+        <div className="flex items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-white">
+                <HistoryIcon className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Archive</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="glass-morphism border-white/10 bg-card/90 backdrop-blur-3xl text-white sm:max-w-md">
+              <SheetHeader>
+                <SheetTitle className="font-headline text-xl font-bold flex items-center gap-2">
+                  <HistoryIcon className="w-5 h-5 text-primary" /> Temporal History
+                </SheetTitle>
+              </SheetHeader>
+              <div className="mt-8 space-y-6 overflow-y-auto max-h-[80vh] pr-2 custom-scrollbar">
+                {(historyLoading || isDecryptingHistory) ? (
+                  <div className="flex flex-col items-center py-20 gap-4">
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Decrypting Logs...</p>
+                  </div>
+                ) : decryptedHistory.length > 0 ? (
+                  decryptedHistory.map((item) => (
+                    <div key={item.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+                      <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                        <span>{item.createdAt?.seconds ? format(new Date(item.createdAt.seconds * 1000), "MMM d, h:mm a") : "Legacy"}</span>
+                        <Lock className="w-3 h-3 opacity-30" />
+                      </div>
+                      <p className="text-sm font-light text-white/80 whitespace-pre-wrap leading-relaxed">{item.content}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground italic text-sm">No archived dialogues found.</div>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">E2EE Tunnel</span>
+          </div>
         </div>
       </header>
 
-      {/* Message List */}
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto py-8 space-y-8 scroll-smooth custom-scrollbar"
@@ -201,7 +272,6 @@ export default function ResonancePage() {
         </AnimatePresence>
       </div>
 
-      {/* Input Area - Pinned at Bottom */}
       <footer className="py-4 bg-background/80 backdrop-blur-md sticky bottom-0 z-20 border-t border-white/5">
         <form 
           onSubmit={handleSend}

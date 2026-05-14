@@ -63,7 +63,7 @@ export default function EvolutionPage() {
       journal: decryptedMemories.filter(m => m.type === 'journal' || m.type === 'entry').length,
       dream: decryptedMemories.filter(m => m.type === 'dream').length,
       vocal: decryptedMemories.filter(m => m.type === 'vocal').length,
-      resonance: decryptedMemories.filter(m => m.content?.includes('Future Self')).length,
+      resonance: decryptedMemories.filter(m => m.type === 'resonance').length,
     };
     return {
       resilience: Math.min(100, 15 + (counts.journal * 5)),

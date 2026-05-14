@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
@@ -56,7 +57,9 @@ export default function TimelinePage() {
             content: m.isEncrypted ? await decryptData(m.content, user.uid) : m.content
           }))
         );
-        setDecryptedMemories(decrypted);
+        // Filter out resonance dialogues to keep the timeline focused on life entries
+        const filtered = decrypted.filter(m => m.type !== 'resonance');
+        setDecryptedMemories(filtered);
       } catch (err) {
         console.error("Timeline decryption error:", err);
       } finally {
