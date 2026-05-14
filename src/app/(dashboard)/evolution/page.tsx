@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LineChart as ChartIcon, Sparkles, TrendingUp, Heart, Zap, Loader2, BookOpen, BrainCircuit, Trash2, Calendar, Radio, Play, Pause } from "lucide-react";
+import { LineChart as ChartIcon, Sparkles, TrendingUp, Heart, Zap, Loader2, BookOpen, BrainCircuit, Trash2, Calendar, Radio, History as HistoryIcon } from "lucide-react";
 import { EvolutionChart, ChartDataPoint } from "@/components/dashboard/evolution-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -322,7 +322,7 @@ export default function EvolutionPage() {
           {recentSyntheses.length > 0 && (
             <div className="col-span-full space-y-4">
               <h3 className="font-headline text-lg font-medium text-muted-foreground flex items-center gap-2">
-                <History className="w-4 h-4" /> Synthesis Archive
+                <HistoryIcon className="w-4 h-4" /> Synthesis Archive
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {recentSyntheses.map((synth: any) => (
