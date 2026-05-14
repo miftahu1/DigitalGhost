@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LineChart as ChartIcon, Sparkles, TrendingUp, Heart, Zap, Loader2, BookOpen, BrainCircuit, Trash2, Calendar } from "lucide-react";
+import { LineChart as ChartIcon, Sparkles, TrendingUp, Heart, Zap, Loader2, BookOpen, BrainCircuit, Trash2, Calendar, Radio, Play, Pause } from "lucide-react";
 import { EvolutionChart, ChartDataPoint } from "@/components/dashboard/evolution-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +13,7 @@ import { useUser, useFirestore, useDoc, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy, setDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { yearlyRecap } from "@/ai/flows/yearly-recap";
 import { emotionalInsightSummary, EmotionalInsightSummaryOutput } from "@/ai/flows/emotional-insight-summary";
+import { broadcastNeuralRadio } from "@/ai/flows/neural-radio-flow";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, startOfDay, endOfDay, eachDayOfInterval, startOfWeek, endOfWeek, eachWeekOfInterval, startOfYear, endOfYear, eachYearOfInterval } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -27,9 +28,11 @@ export default function EvolutionPage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [isRadioLoading, setIsRadioLoading] = useState(false);
   const [recapResult, setRecapResult] = useState<string | null>(null);
   const [emotionalInsight, setEmotionalInsight] = useState<EmotionalInsightSummaryOutput | null>(null);
   const [filter, setFilter] = useState<FilterRange>("monthly");
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const userRef = useMemo(() => {
     if (!db || !user) return null;
@@ -144,6 +147,18 @@ export default function EvolutionPage() {
       toast({ variant: "destructive", title: "Synthesis Blocked", description: "Could not read the emotional ether." });
     } finally {
       setIsSynthesizing(false);
+    }
+  };
+
+  const handleStartRadio = async (text: string) => {
+    setIsRadioLoading(true);
+    try {
+      const result = await broadcastNeuralRadio({ text });
+      setAudioUrl(result.audioDataUri);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Radio Signal Lost", description: "Could not broadcast frequency." });
+    } finally {
+      setIsRadioLoading(false);
     }
   };
 
@@ -268,12 +283,29 @@ export default function EvolutionPage() {
               >
                 <Card className="glass-morphism border-white/5 bg-accent/5 col-span-full">
                   <CardContent className="p-8 space-y-4">
-                    <h4 className="font-headline text-lg text-accent flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" /> Global Summary
-                    </h4>
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-headline text-lg text-accent flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" /> Global Summary
+                      </h4>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="rounded-full border-accent/20 bg-accent/5"
+                        onClick={() => handleStartRadio(emotionalInsight.emotionalSummary)}
+                        disabled={isRadioLoading}
+                      >
+                        {isRadioLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4 mr-2" />}
+                        Listen to Echo
+                      </Button>
+                    </div>
                     <p className="text-lg font-light italic leading-relaxed text-foreground/90">
                       "{emotionalInsight.emotionalSummary}"
                     </p>
+                    {audioUrl && (
+                      <div className="pt-4">
+                        <audio controls src={audioUrl} className="w-full h-10 filter invert opacity-80" autoPlay />
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2 pt-2">
                       {emotionalInsight.persistentFeelings.map((feeling, i) => (
                         <Badge key={i} variant="outline" className="rounded-full bg-white/5 border-white/10 px-4 py-1">
