@@ -1,14 +1,15 @@
+
 "use client";
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Moon, Sparkles, Brain, Search, Info } from "lucide-react";
+import { Moon, Sparkles, Brain, Search, Info, Loader2 } from "lucide-react";
 import { interpretDream } from "@/ai/flows/dream-interpreter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/toast-hook";
 import { useUser, useFirestore } from "@/firebase";
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 
@@ -21,13 +22,15 @@ export default function DreamsPage() {
   const db = useFirestore();
 
   const handleAnalyze = async () => {
-    if (!dream.trim() || !user || !db) return;
+    if (!dream.trim() || !user?.uid || !db || isAnalyzing) {
+      if (!user?.uid) toast({ variant: "destructive", title: "Error", description: "Login required." });
+      return;
+    }
+
     setIsAnalyzing(true);
     try {
       const result = await interpretDream({ dreamEntry: dream });
-      setAnalysis(result);
       
-      // Generate a clean reference for the new memory
       const memoriesRef = collection(db, 'users', user.uid, 'memories');
       const dreamRef = doc(memoriesRef);
       
@@ -44,9 +47,15 @@ export default function DreamsPage() {
         }
       });
 
+      setAnalysis(result);
       toast({ title: "Interpretation Complete", description: "Subconscious patterns archived in the vault." });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Analysis Failed", description: "The void was silent." });
+    } catch (error: any) {
+      console.error("Dream Analysis Error:", error);
+      const errorMsg = error.message?.includes("API key") 
+        ? "AI Engine requires a valid GOOGLE_GENAI_API_KEY in environment."
+        : "The void was silent. Connection to AI failed.";
+        
+      toast({ variant: "destructive", title: "Analysis Failed", description: errorMsg });
     } finally {
       setIsAnalyzing(false);
     }
@@ -54,7 +63,7 @@ export default function DreamsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-10 pb-20">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 text-white">
         <div>
           <h1 className="font-headline text-4xl font-bold tracking-tight flex items-center gap-3">
             Oneirology Vault <Moon className="w-8 h-8 text-primary" />
@@ -73,18 +82,19 @@ export default function DreamsPage() {
             value={dream}
             onChange={(e) => setDream(e.target.value)}
             placeholder="I was flying over a city made of glass..."
-            className="min-h-[250px] text-lg font-light leading-relaxed bg-card/40 glass-morphism border-white/10 p-8 rounded-2xl focus:ring-accent/40"
+            disabled={isAnalyzing}
+            className="min-h-[250px] text-lg font-light leading-relaxed bg-card/40 glass-morphism border-white/10 p-8 rounded-2xl focus:ring-accent/40 text-white"
           />
         </div>
         
         <Button 
           onClick={handleAnalyze} 
-          disabled={!dream.trim() || isAnalyzing || !user}
-          className="w-full h-14 rounded-full font-headline tracking-widest text-lg group relative overflow-hidden"
+          disabled={!dream.trim() || isAnalyzing || !user?.uid}
+          className="w-full h-14 rounded-full font-headline tracking-widest text-lg group relative overflow-hidden shadow-lg shadow-accent/20"
         >
-          <span className="relative z-10 flex items-center gap-2">
+          <span className="relative z-10 flex items-center gap-2 text-white">
             {isAnalyzing ? "Interpreting Subconscious..." : "Analyze Dream Patterns"}
-            <Brain className={`w-5 h-5 ${isAnalyzing ? 'animate-spin' : ''}`} />
+            {isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Brain className="w-5 h-5" />}
           </span>
           <div className="absolute inset-0 bg-gradient-to-r from-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
         </Button>
@@ -98,11 +108,11 @@ export default function DreamsPage() {
         >
           <Card className="glass-morphism border-white/10 bg-white/5 md:col-span-2">
             <CardContent className="p-8 space-y-4">
-              <h3 className="font-headline text-xl font-medium flex items-center gap-2">
+              <h3 className="font-headline text-xl font-medium flex items-center gap-2 text-white">
                 <Sparkles className="w-5 h-5 text-primary" />
                 Interpretation
               </h3>
-              <p className="text-foreground/90 font-light leading-relaxed text-lg italic">
+              <p className="text-foreground/90 font-light leading-relaxed text-lg italic text-white/90">
                 "{analysis.interpretation}"
               </p>
             </CardContent>
@@ -110,7 +120,7 @@ export default function DreamsPage() {
 
           <Card className="glass-morphism border-white/5 bg-white/5">
             <CardContent className="p-8 space-y-4">
-              <h3 className="font-headline text-lg font-medium flex items-center gap-2">
+              <h3 className="font-headline text-lg font-medium flex items-center gap-2 text-white">
                 <Search className="w-5 h-5 text-accent" />
                 Recurring Themes
               </h3>
@@ -126,7 +136,7 @@ export default function DreamsPage() {
 
           <Card className="glass-morphism border-white/5 bg-white/5">
             <CardContent className="p-8 space-y-4">
-              <h3 className="font-headline text-lg font-medium flex items-center gap-2">
+              <h3 className="font-headline text-lg font-medium flex items-center gap-2 text-white">
                 <Info className="w-5 h-5 text-primary" />
                 Subconscious Insights
               </h3>

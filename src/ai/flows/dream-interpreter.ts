@@ -1,10 +1,9 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow for interpreting user dream entries, identifying recurring themes and subconscious patterns.
  *
  * - interpretDream - A function that handles the dream interpretation process.
- * - DreamInterpreterInput - The input type for the interpretDream function.
- * - DreamInterpreterOutput - The return type for the interpretDream function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -39,7 +38,15 @@ export type DreamInterpreterOutput = z.infer<
 export async function interpretDream(
   input: DreamInterpreterInput
 ): Promise<DreamInterpreterOutput> {
-  return dreamInterpreterFlow(input);
+  try {
+    return await dreamInterpreterFlow(input);
+  } catch (error: any) {
+    console.error("Dream Flow Error:", error);
+    if (error.message?.includes("API key")) {
+      throw new Error("AI engine failed: Valid GOOGLE_GENAI_API_KEY required in environment variables.");
+    }
+    throw error;
+  }
 }
 
 const dreamInterpreterPrompt = ai.definePrompt({
@@ -66,6 +73,7 @@ const dreamInterpreterFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await dreamInterpreterPrompt(input);
-    return output!;
+    if (!output) throw new Error("AI interpretation returned no result.");
+    return output;
   }
 );

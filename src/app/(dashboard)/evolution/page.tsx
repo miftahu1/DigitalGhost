@@ -9,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { useUser, useFirestore, useDoc, useCollection } from "@/firebase";
-import { doc, collection, query, orderBy, setDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { useUser, useFirestore, useCollection } from "@/firebase";
+import { collection, query, orderBy, setDoc, doc, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { yearlyRecap } from "@/ai/flows/yearly-recap";
 import { emotionalInsightSummary, EmotionalInsightSummaryOutput } from "@/ai/flows/emotional-insight-summary";
 import { broadcastNeuralRadio } from "@/ai/flows/neural-radio-flow";
@@ -35,27 +35,27 @@ export default function EvolutionPage() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const memoriesQuery = useMemo(() => {
-    if (!db || !user) return null;
+    if (!db || !user?.uid) return null;
     return query(collection(db, "users", user.uid, "memories"), orderBy("createdAt", "asc"));
-  }, [db, user]);
+  }, [db, user?.uid]);
 
   const { data: memories, loading: memoriesLoading } = useCollection(memoriesQuery);
 
   const derivedStats = useMemo(() => {
-    if (!memories) return { resilience: 50, empathy: 50, clarity: 50, openness: 50 };
+    if (!memories || memories.length === 0) return { resilience: 10, empathy: 10, clarity: 10, openness: 10 };
     
     const counts = {
-      journal: memories.filter(m => m.type === 'journal').length,
+      journal: memories.filter(m => m.type === 'journal' || m.type === 'entry').length,
       dream: memories.filter(m => m.type === 'dream').length,
       vocal: memories.filter(m => m.type === 'vocal').length,
-      resonance: memories.filter(m => m.content?.includes('Dialogue with Future Self')).length,
+      resonance: memories.filter(m => m.content?.includes('Future Self')).length,
     };
 
     return {
-      resilience: Math.min(100, 30 + (counts.journal * 3)),
-      empathy: Math.min(100, 30 + (counts.resonance * 8)),
-      clarity: Math.min(100, 30 + (counts.dream * 7)),
-      openness: Math.min(100, 30 + (counts.vocal * 6)),
+      resilience: Math.min(100, 15 + (counts.journal * 5)),
+      empathy: Math.min(100, 15 + (counts.resonance * 10)),
+      clarity: Math.min(100, 15 + (counts.dream * 8)),
+      openness: Math.min(100, 15 + (counts.vocal * 7)),
     };
   }, [memories]);
 
@@ -81,7 +81,7 @@ export default function EvolutionPage() {
     }
 
     return intervals.map(date => {
-      let startRange, endRange;
+      let startRange: Date, endRange: Date;
       if (filter === "daily") { startRange = startOfDay(date); endRange = endOfDay(date); }
       else if (filter === "weekly") { startRange = startOfWeek(date); endRange = endOfWeek(date); }
       else if (filter === "yearly") { startRange = startOfYear(date); endRange = endOfYear(date); }
@@ -104,7 +104,7 @@ export default function EvolutionPage() {
   }, [memories, filter]);
 
   const handleGenerateRecap = async () => {
-    if (!memories || memories.length === 0 || !user || !db) return;
+    if (!memories || memories.length === 0 || !user?.uid || !db) return;
     setIsGenerating(true);
     try {
       const year = new Date().getFullYear();
@@ -124,14 +124,14 @@ export default function EvolutionPage() {
       setRecapResult(result.recap);
       toast({ title: "Annual Echo Archived", description: "Synthesis saved to your neural vault." });
     } catch (error) {
-      toast({ variant: "destructive", title: "Synthesis Failed", description: "Neural connection lost." });
+      toast({ variant: "destructive", title: "Synthesis Failed", description: "AI engine failed to connect." });
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleEmotionalSynthesis = async () => {
-    if (!memories || memories.length === 0 || !user || !db) return;
+    if (!memories || memories.length === 0 || !user?.uid || !db) return;
     setIsSynthesizing(true);
     try {
       const entries = memories.slice(-20).map((m: any) => ({
@@ -155,7 +155,7 @@ export default function EvolutionPage() {
       setEmotionalInsight(result);
       toast({ title: "Landscape Mapped", description: "Emotional synthesis archived." });
     } catch (error) {
-      toast({ variant: "destructive", title: "Synthesis Blocked", description: "Could not read the emotional ether." });
+      toast({ variant: "destructive", title: "Synthesis Blocked", description: "Neural connection failed." });
     } finally {
       setIsSynthesizing(false);
     }
@@ -174,7 +174,7 @@ export default function EvolutionPage() {
   };
 
   const handleDeleteSynthesis = async (id: string) => {
-    if (!user || !db) return;
+    if (!user?.uid || !db) return;
     try {
       await deleteDoc(doc(db, "users", user.uid, "memories", id));
       toast({ title: "Synthesis Deleted", description: "Data purged from your vault." });
@@ -196,9 +196,9 @@ export default function EvolutionPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 pb-20">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 text-white">
         <div>
-          <h1 className="font-headline text-4xl font-bold tracking-tight flex items-center gap-3 text-white">
+          <h1 className="font-headline text-4xl font-bold tracking-tight flex items-center gap-3">
             Identity Evolution Map <ChartIcon className="w-8 h-8 text-primary" />
           </h1>
           <p className="text-muted-foreground font-light text-lg mt-1">Visualize your internal growth over the temporal axis.</p>
@@ -221,7 +221,7 @@ export default function EvolutionPage() {
         <div className="space-y-6">
           <Card className="glass-morphism border-white/5 bg-transparent">
             <CardHeader>
-              <CardTitle className="font-headline text-lg font-medium tracking-wide">Personality Vector Status</CardTitle>
+              <CardTitle className="font-headline text-lg font-medium tracking-wide text-white">Personality Vector Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {memoriesLoading ? (
@@ -258,7 +258,7 @@ export default function EvolutionPage() {
                   onClick={handleGenerateRecap}
                   disabled={isGenerating || !memories || memories.length === 0}
                   variant="outline" 
-                  className="w-full rounded-full border-white/10 glass hover:bg-white/5"
+                  className="w-full rounded-full border-white/10 glass hover:bg-white/5 text-white"
                 >
                   {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
                   {isGenerating ? "Synthesizing..." : "GENERATE RECAP"}
@@ -301,7 +301,7 @@ export default function EvolutionPage() {
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="rounded-full border-accent/20 bg-accent/5"
+                        className="rounded-full border-accent/20 bg-accent/5 text-white"
                         onClick={() => handleStartRadio(emotionalInsight.emotionalSummary)}
                         disabled={isRadioLoading}
                       >
@@ -309,7 +309,7 @@ export default function EvolutionPage() {
                         Listen to Echo
                       </Button>
                     </div>
-                    <p className="text-lg font-light italic leading-relaxed text-foreground/90">
+                    <p className="text-lg font-light italic leading-relaxed text-foreground/90 text-white/90">
                       "{emotionalInsight.emotionalSummary}"
                     </p>
                     {audioUrl && (
@@ -319,7 +319,7 @@ export default function EvolutionPage() {
                     )}
                     <div className="flex flex-wrap gap-2 pt-2">
                       {emotionalInsight.persistentFeelings.map((feeling, i) => (
-                        <Badge key={i} variant="outline" className="rounded-full bg-white/5 border-white/10 px-4 py-1">
+                        <Badge key={i} variant="outline" className="rounded-full bg-white/5 border-white/10 px-4 py-1 text-white">
                           {feeling}
                         </Badge>
                       ))}
@@ -359,7 +359,7 @@ export default function EvolutionPage() {
                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
                             {synth.createdAt?.seconds ? format(new Date(synth.createdAt.seconds * 1000), "MMM d, yyyy") : "Archive"}
                          </span>
-                         <Button variant="link" onClick={() => synth.type === 'recap' ? setRecapResult(synth.content) : setEmotionalInsight(synth.analysis)} className="p-0 h-auto text-[10px] uppercase font-bold tracking-widest">
+                         <Button variant="link" onClick={() => synth.type === 'recap' ? setRecapResult(synth.content) : setEmotionalInsight(synth.analysis)} className="p-0 h-auto text-[10px] uppercase font-bold tracking-widest text-primary">
                            Open File
                          </Button>
                       </div>
@@ -384,7 +384,7 @@ export default function EvolutionPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
-            <p className="text-lg font-light leading-relaxed text-foreground/90 italic whitespace-pre-wrap">
+            <p className="text-lg font-light leading-relaxed text-foreground/90 italic whitespace-pre-wrap text-white/90">
               {recapResult}
             </p>
           </div>
