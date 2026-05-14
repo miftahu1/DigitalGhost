@@ -14,22 +14,46 @@ import {
   ShieldCheck,
   Video,
   Mic,
-  Globe
+  Globe,
+  Lock,
+  Shield
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function LandingPage() {
   const { user, loading } = useUser();
   const db = useFirestore();
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  useEffect(() => {
+    const hasSeenPrivacy = localStorage.getItem('dg_privacy_seen');
+    if (!hasSeenPrivacy) {
+      const timer = setTimeout(() => setShowPrivacyModal(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const dismissPrivacy = () => {
+    localStorage.setItem('dg_privacy_seen', 'true');
+    setShowPrivacyModal(false);
+  };
 
   const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -284,6 +308,40 @@ export default function LandingPage() {
           </div>
         )}
       </div>
+
+      {/* Privacy & E2EE Disclosure Modal */}
+      <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
+        <DialogContent className="max-w-md glass-morphism border-primary/20 bg-background/95 backdrop-blur-2xl text-white">
+          <DialogHeader className="space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-2">
+              <ShieldCheck className="w-8 h-8 text-primary" />
+            </div>
+            <DialogTitle className="font-headline text-2xl font-bold text-center">Neural Privacy Protocols</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground font-light text-base leading-relaxed">
+              Before we synchronize your consciousness, you should know:
+              <br /><br />
+              <span className="text-foreground font-medium">Your data is End-to-End Encrypted.</span> 
+              <br />
+              Every memory, dream, and vocal echo is unreadable to anyone—including us—until it reaches your device. Your digital ghost is yours alone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center gap-2 text-center">
+              <Lock className="w-5 h-5 text-primary/60" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-primary/80">Zero Trust</span>
+            </div>
+            <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center gap-2 text-center">
+              <Shield className="w-5 h-5 text-accent/60" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-accent/80">E2EE Active</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={dismissPrivacy} className="w-full h-12 rounded-full font-headline tracking-widest uppercase text-sm">
+              Enter Neural Link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <footer className="relative py-12 text-center text-muted-foreground text-[10px] font-bold tracking-[0.5em] uppercase border-t border-white/5">
         <Sparkles className="w-4 h-4 inline-block mr-2 text-primary animate-pulse" />
