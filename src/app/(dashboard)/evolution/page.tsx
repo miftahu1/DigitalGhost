@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LineChart as ChartIcon, Sparkles, TrendingUp, Heart, Zap, Loader2, BookOpen, X } from "lucide-react";
-import { EvolutionChart } from "@/components/dashboard/evolution-chart";
+import { LineChart as ChartIcon, Sparkles, TrendingUp, Heart, Zap, Loader2, BookOpen } from "lucide-react";
+import { EvolutionChart, ChartDataPoint } from "@/components/dashboard/evolution-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useUser, useFirestore, useDoc, useCollection } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
 import { yearlyRecap } from "@/ai/flows/yearly-recap";
 import { useToast } from "@/hooks/use-toast";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
 
 export default function EvolutionPage() {
   const { user } = useUser();
@@ -35,6 +36,34 @@ export default function EvolutionPage() {
   }, [db, user]);
 
   const { data: memories } = useCollection(memoriesQuery);
+
+  const chartData = useMemo(() => {
+    if (!memories) return [];
+
+    const now = new Date();
+    const sixMonthsAgo = subMonths(now, 6);
+    const months = eachMonthOfInterval({ start: sixMonthsAgo, end: now });
+
+    return months.map(month => {
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
+      
+      const monthMemories = memories.filter((m: any) => {
+        if (!m.createdAt?.seconds) return false;
+        const date = new Date(m.createdAt.seconds * 1000);
+        return date >= monthStart && date <= monthEnd;
+      });
+
+      // Calculate pseudo-stats based on activity
+      const activityCount = monthMemories.length;
+      return {
+        name: format(month, "MMM"),
+        growth: Math.min(100, (activityCount * 15) + 20),
+        mood: 40 + (Math.random() * 40), // In a real app, this would come from mood tags
+        emotional: 50 + (activityCount * 5)
+      } as ChartDataPoint;
+    });
+  }, [memories]);
 
   const handleGenerateRecap = async () => {
     if (!memories || memories.length === 0) {
@@ -88,7 +117,7 @@ export default function EvolutionPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <EvolutionChart />
+          <EvolutionChart data={chartData} />
         </div>
 
         <div className="space-y-6">
@@ -139,26 +168,6 @@ export default function EvolutionPage() {
           </Card>
         </div>
       </div>
-
-      <section className="space-y-6">
-        <h2 className="font-headline text-2xl font-medium tracking-tight">Neural Insights</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="glass-morphism border-white/5 bg-card/20 group hover:border-primary/30 transition-all">
-            <CardContent className="p-8 flex items-start gap-6">
-              <div className="w-12 h-12 rounded-full glass flex items-center justify-center shrink-0">
-                <TrendingUp className="w-6 h-6 text-primary" />
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-primary">Stability Profile</span>
-                <h4 className="font-headline text-xl font-medium">Syncing → Stabilized</h4>
-                <p className="text-sm text-muted-foreground font-light leading-relaxed">
-                  Integration of real-time data flow into the primary neural vault. Emotional variance is within expected parameters.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
 
       <Dialog open={!!recapResult} onOpenChange={(open) => !open && setRecapResult(null)}>
         <DialogContent className="max-w-2xl glass-morphism border-white/10 bg-card/90 backdrop-blur-2xl">

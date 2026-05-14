@@ -4,7 +4,18 @@
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const data = [
+export type ChartDataPoint = {
+  name: string;
+  emotional: number;
+  growth: number;
+  mood: number;
+};
+
+interface EvolutionChartProps {
+  data?: ChartDataPoint[];
+}
+
+const defaultData: ChartDataPoint[] = [
   { name: "Jan", emotional: 400, growth: 240, mood: 240 },
   { name: "Feb", emotional: 300, growth: 139, mood: 221 },
   { name: "Mar", emotional: 200, growth: 980, mood: 229 },
@@ -14,7 +25,7 @@ const data = [
   { name: "Jul", emotional: 349, growth: 430, mood: 210 },
 ];
 
-export function EvolutionChart() {
+export function EvolutionChart({ data = defaultData }: EvolutionChartProps) {
   return (
     <Card className="glass-morphism border-white/5 bg-transparent h-[400px]">
       <CardHeader>
@@ -39,7 +50,7 @@ export function EvolutionChart() {
               fontSize={12} 
               tickLine={false} 
               axisLine={false}
-              tickFormatter={(value) => `${value}`}
+              hide
             />
             <Tooltip 
               contentStyle={{ 

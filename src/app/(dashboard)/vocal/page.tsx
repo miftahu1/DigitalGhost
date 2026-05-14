@@ -1,18 +1,23 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Mic, Square, Play, Trash2, Volume2, Save, Loader2 } from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mic, Square, Play, Trash2, Volume2, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collection, query, where, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
 import { format } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function VocalEchoPage() {
   const [isRecording, setIsRecording] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+  const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const audioChunks = useRef<Blob[]>([]);
+  
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -26,47 +31,105 @@ export default function VocalEchoPage() {
     );
   }, [db, user]);
 
-  const { data: recordings, loading } = useCollection(vocalQuery);
+  const { data: recordings, loading, error: queryError } = useCollection(vocalQuery);
 
-  const toggleRecording = async () => {
-    if (isRecording) {
-      // Simulation of saving a voice note
-      if (!user || !db) return;
-      try {
-        await addDoc(collection(db, "users", user.uid, "memories"), {
-          content: "A new vocal frequency captured in the archive.",
-          type: "vocal",
-          createdAt: serverTimestamp(),
-          userId: user.uid,
-          mood: "vocal-resonance",
-          analysis: { duration: "0:12" }
-        });
-        toast({ title: "Recording Saved", description: "Neural frequency archived." });
-      } catch (e) {
-        toast({ variant: "destructive", title: "Archive Failed", description: "The void rejected the signal." });
-      }
+  const requestPermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop()); // Close immediate stream
+      setPermissionStatus('granted');
+      return true;
+    } catch (err) {
+      setPermissionStatus('denied');
+      toast({
+        variant: "destructive",
+        title: "Microphone Required",
+        description: "Please enable microphone access in your browser settings to record echoes."
+      });
+      return false;
     }
-    setIsRecording(!isRecording);
+  };
+
+  const startRecording = async () => {
+    const hasPermission = await requestPermission();
+    if (!hasPermission) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder.current = new MediaRecorder(stream);
+      audioChunks.current = [];
+
+      mediaRecorder.current.ondataavailable = (event) => {
+        audioChunks.current.push(event.data);
+      };
+
+      mediaRecorder.current.onstop = async () => {
+        if (!user || !db) return;
+        
+        // In a real app, we'd upload the blob to Firebase Storage
+        // Here we simulate the metadata storage for the echo
+        try {
+          await addDoc(collection(db, "users", user.uid, "memories"), {
+            content: "A new vocal frequency captured in the archive.",
+            type: "vocal",
+            createdAt: serverTimestamp(),
+            userId: user.uid,
+            mood: "vocal-resonance",
+            analysis: { 
+              duration: "0:12",
+              isSimulation: true 
+            }
+          });
+          toast({ title: "Echo Archived", description: "Your neural frequency has been stored." });
+        } catch (e) {
+          toast({ variant: "destructive", title: "Archive Failed", description: "The void rejected the signal." });
+        }
+        
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Recording error:", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder.current && isRecording) {
+      mediaRecorder.current.stop();
+      setIsRecording(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!user || !db) return;
     try {
       await deleteDoc(doc(db, "users", user.uid, "memories", id));
-      toast({ title: "Echo Deleted", description: "The frequency has faded into silence." });
+      toast({ title: "Echo Faded", description: "The frequency has returned to silence." });
     } catch (e) {
       toast({ variant: "destructive", title: "Deletion Failed", description: "The memory persists." });
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12">
+    <div className="max-w-4xl mx-auto space-y-12 pb-20">
       <header className="text-center space-y-4">
         <h1 className="font-headline text-4xl font-bold tracking-tight">Vocal Echo Archive</h1>
         <p className="text-muted-foreground font-light text-lg mx-auto max-w-xl">
           Capture the raw frequency of your voice. The sound of who you are in this exact moment.
         </p>
       </header>
+
+      {permissionStatus === 'denied' && (
+        <Alert variant="destructive" className="glass-morphism border-destructive/50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Microphone Access Blocked</AlertTitle>
+          <AlertDescription>
+            The system cannot access your microphone. Please update your browser permissions to continue.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="flex justify-center">
         <div className="relative group">
@@ -86,7 +149,7 @@ export default function VocalEchoPage() {
           )}
 
           <Button
-            onClick={toggleRecording}
+            onClick={isRecording ? stopRecording : startRecording}
             disabled={!user}
             className={`w-32 h-32 rounded-full flex flex-col items-center justify-center gap-2 border-4 z-10 relative transition-all duration-500 ${
               isRecording 
@@ -133,6 +196,10 @@ export default function VocalEchoPage() {
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Syncing Vocal Frequencies...</p>
           </div>
+        ) : queryError ? (
+          <div className="text-center py-10 glass-morphism rounded-2xl border-destructive/20 text-destructive text-sm font-light">
+            Neural index required. Please ensure Firestore composite indexes are built.
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {recordings?.map((rec: any) => (
@@ -143,11 +210,13 @@ export default function VocalEchoPage() {
                       <Play className="w-5 h-5 text-primary fill-current" />
                     </div>
                     <div>
-                      <h4 className="font-headline font-medium text-lg">{rec.content.substring(0, 30)}...</h4>
+                      <h4 className="font-headline font-medium text-lg">
+                        {rec.content.length > 40 ? rec.content.substring(0, 40) + "..." : rec.content}
+                      </h4>
                       <p className="text-xs text-muted-foreground uppercase tracking-widest font-light">
                         {rec.createdAt?.seconds 
                           ? format(new Date(rec.createdAt.seconds * 1000), "MMM d, yyyy") 
-                          : "Processing..."} • {rec.analysis?.duration || "0:00"}
+                          : "Processing..."} • {rec.analysis?.duration || "0:12"}
                       </p>
                     </div>
                   </div>
