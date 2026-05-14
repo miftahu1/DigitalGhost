@@ -29,7 +29,7 @@ export default function LandingPage() {
             className="p-6 rounded-3xl glass bg-primary/5 border-primary/20"
           >
             <Image 
-              src="/logos/logo.png" 
+              src="/logo/logo.png" 
               alt="Digital Ghost Logo" 
               width={64} 
               height={64} 

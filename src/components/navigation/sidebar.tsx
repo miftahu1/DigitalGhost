@@ -60,7 +60,7 @@ export function Sidebar() {
         <Link href="/" className="flex items-center gap-2">
           <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-primary/20 flex items-center justify-center">
             <Image 
-              src="/logos/logo.png" 
+              src="/logo/logo.png" 
               alt="Digital Ghost Icon" 
               width={24} 
               height={24} 
@@ -96,7 +96,7 @@ export function Sidebar() {
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Image 
-                src="/logos/logo.png" 
+                src="/logo/logo.png" 
                 alt="Digital Ghost Logo" 
                 width={32} 
                 height={32} 
