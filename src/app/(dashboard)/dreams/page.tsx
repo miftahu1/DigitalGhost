@@ -10,20 +10,42 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useUser, useFirestore } from "@/firebase";
+import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export default function DreamsPage() {
   const [dream, setDream] = useState("");
   const [analysis, setAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
+  const db = useFirestore();
 
   const handleAnalyze = async () => {
-    if (!dream.trim()) return;
+    if (!dream.trim() || !user || !db) return;
     setIsAnalyzing(true);
     try {
       const result = await interpretDream({ dreamEntry: dream });
       setAnalysis(result);
-      toast({ title: "Interpretation Complete", description: "Subconscious patterns identified." });
+      
+      // Persist the dream and its analysis to the neural vault
+      const dreamId = doc(collection(db, 'placeholder')).id;
+      const dreamRef = doc(db, 'users', user.uid, 'memories', dreamId);
+      
+      await setDoc(dreamRef, {
+        content: dream,
+        type: 'dream',
+        createdAt: serverTimestamp(),
+        userId: user.uid,
+        mood: 'subconscious',
+        analysis: {
+          interpretation: result.interpretation,
+          themes: result.themes,
+          patterns: result.subconsciousPatterns
+        }
+      });
+
+      toast({ title: "Interpretation Complete", description: "Subconscious patterns archived in the vault." });
     } catch (error) {
       toast({ variant: "destructive", title: "Analysis Failed", description: "The void was silent." });
     } finally {
@@ -58,7 +80,7 @@ export default function DreamsPage() {
         
         <Button 
           onClick={handleAnalyze} 
-          disabled={!dream.trim() || isAnalyzing}
+          disabled={!dream.trim() || isAnalyzing || !user}
           className="w-full h-14 rounded-full font-headline tracking-widest text-lg group relative overflow-hidden"
         >
           <span className="relative z-10 flex items-center gap-2">

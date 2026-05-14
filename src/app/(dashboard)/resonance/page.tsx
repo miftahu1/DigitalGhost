@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
+import { useUser, useFirestore } from "@/firebase";
+import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 type Message = {
   id: string;
@@ -17,6 +19,8 @@ type Message = {
 };
 
 export default function ResonancePage() {
+  const { user } = useUser();
+  const db = useFirestore();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -35,7 +39,7 @@ export default function ResonancePage() {
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || isTyping || !user || !db) return;
 
     const userMsg: Message = { id: Date.now().toString(), role: "user", content: input };
     setMessages((prev) => [...prev, userMsg]);
@@ -45,7 +49,7 @@ export default function ResonancePage() {
     try {
       const response = await futureSelfChat({
         userMessage: input,
-        memoryContext: "The user is currently reflecting on their journey and seeking guidance from their future self.",
+        memoryContext: `This user is ${user.displayName || 'a digital ghost'}. They are currently interacting with their temporal reflection.`,
       });
 
       const assistantMsg: Message = {
@@ -53,7 +57,24 @@ export default function ResonancePage() {
         role: "assistant",
         content: response.response,
       };
+      
       setMessages((prev) => [...prev, assistantMsg]);
+
+      // Archive this temporal interaction
+      const interactionId = doc(collection(db, 'placeholder')).id;
+      const interactionRef = doc(db, 'users', user.uid, 'memories', interactionId);
+      await setDoc(interactionRef, {
+        content: `Prompt: ${input}\n\nFuture Response: ${response.response}`,
+        type: 'vocal', // Categorized as vocal echo/dialogue
+        createdAt: serverTimestamp(),
+        userId: user.uid,
+        mood: 'reflective',
+        analysis: {
+          isAIGenerated: true,
+          temporalShift: '+10 Years'
+        }
+      });
+
     } catch (error) {
       console.error("AI Error:", error);
     } finally {
@@ -78,7 +99,6 @@ export default function ResonancePage() {
       </header>
 
       <Card className="flex-1 glass-morphism border-white/5 flex flex-col overflow-hidden relative">
-        {/* Background Glows for AI Interaction */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-glow-primary opacity-20 pointer-events-none" />
         
         <div 
@@ -138,20 +158,21 @@ export default function ResonancePage() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Tell me what's on your mind..."
+              placeholder={user ? "Tell me what's on your mind..." : "Log in to resonate..."}
+              disabled={!user || isTyping}
               className="h-14 bg-white/5 border-white/10 rounded-full px-6 focus:ring-primary/50 font-light"
             />
             <Button 
               type="submit" 
               size="icon" 
-              disabled={!input.trim() || isTyping}
+              disabled={!input.trim() || isTyping || !user}
               className="h-12 w-12 rounded-full absolute right-1 bg-primary text-primary-foreground hover:bg-primary/90 transition-transform active:scale-95"
             >
               <Send className="w-5 h-5" />
             </Button>
           </form>
           <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-4 font-bold">
-            Temporal link status: Stable
+            Temporal link status: {user ? 'Stable' : 'Offline'}
           </p>
         </div>
       </Card>
