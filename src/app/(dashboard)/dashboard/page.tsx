@@ -168,7 +168,7 @@ export default function Dashboard() {
                 <p className="text-[10px] md:text-xs text-muted-foreground">Analyze your dreams</p>
               </div>
             </CardContent>
-          </Link>
+          </Card>
         </Link>
 
         <Link href="/vocal">
