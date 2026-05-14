@@ -17,7 +17,7 @@ import { broadcastNeuralRadio } from "@/ai/flows/neural-radio-flow";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, startOfDay, endOfDay, eachDayOfInterval, startOfWeek, endOfWeek, eachWeekOfInterval, startOfYear, endOfYear, eachYearOfInterval } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { decryptData, encryptData } from "@/lib/encryption";
 
 type FilterRange = "daily" | "weekly" | "monthly" | "yearly";
@@ -180,11 +180,22 @@ export default function EvolutionPage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex justify-between items-center px-2">
+            <h3 className="font-headline text-sm font-bold uppercase tracking-widest text-muted-foreground">Temporal Projection</h3>
+            <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterRange)} className="w-auto">
+              <TabsList className="glass-morphism bg-transparent border-white/5 p-1 h-10 rounded-full inline-flex">
+                <TabsTrigger value="daily" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Day</TabsTrigger>
+                <TabsTrigger value="weekly" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Week</TabsTrigger>
+                <TabsTrigger value="monthly" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Month</TabsTrigger>
+                <TabsTrigger value="yearly" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Year</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
           <EvolutionChart data={chartData} />
         </div>
         <div className="space-y-6">
-          <Card className="glass-morphism border-white/5 bg-transparent">
+          <Card className="glass-morphism border-white/5 bg-transparent h-full">
             <CardHeader><CardTitle className="font-headline text-lg font-medium text-white">Personality Vector Status</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               {memoriesLoading ? <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-primary" /></div> :
@@ -200,20 +211,71 @@ export default function EvolutionPage() {
         </div>
       </div>
       
-      {emotionalInsight && (
-        <Card className="glass-morphism border-primary/20 bg-primary/5">
-          <CardContent className="p-8 space-y-4">
-            <div className="flex justify-between items-start">
-              <h4 className="font-headline text-lg text-primary flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> Secure Emotional Synthesis</h4>
-              <Button size="sm" variant="outline" className="rounded-full border-primary/20 text-white" onClick={() => handleStartRadio(emotionalInsight.emotionalSummary)} disabled={isRadioLoading}>
-                {isRadioLoading ? <Loader2 className="animate-spin" /> : <Radio className="w-4 h-4 mr-2" />} Listen to Echo
-              </Button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="glass-morphism border-white/5 bg-transparent p-6 space-y-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <BrainCircuit className="w-6 h-6 text-primary" />
             </div>
-            <p className="text-lg font-light italic text-white/90">"{emotionalInsight.emotionalSummary}"</p>
-            {audioUrl && <audio controls src={audioUrl} className="w-full h-10 filter invert opacity-80 mt-4" autoPlay />}
-          </CardContent>
+            <div>
+              <h3 className="font-headline text-xl font-bold">Neural Synthesis</h3>
+              <p className="text-sm text-muted-foreground">Map your emotional landscape.</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button onClick={handleEmotionalSynthesis} disabled={isSynthesizing || decryptedMemories.length === 0} className="flex-1 rounded-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20 h-12">
+              {isSynthesizing ? <Loader2 className="animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />} Emotional Snapshot
+            </Button>
+            <Button onClick={handleGenerateRecap} disabled={isGenerating || decryptedMemories.length === 0} className="flex-1 rounded-full bg-accent/20 hover:bg-accent/30 text-accent border border-accent/20 h-12">
+              {isGenerating ? <Loader2 className="animate-spin" /> : <Calendar className="w-4 h-4 mr-2" />} Annual Echo
+            </Button>
+          </div>
         </Card>
-      )}
+
+        <div className="space-y-4">
+          <h3 className="font-headline text-lg font-medium text-muted-foreground flex items-center gap-2">
+            <HistoryIcon className="w-4 h-4" /> Synthesis Archive
+          </h3>
+          <div className="grid grid-cols-1 gap-4">
+            {recentSyntheses.map((synth: any) => (
+              <Card key={synth.id} className="glass-morphism border-white/5 bg-white/5 hover:bg-white/10 transition-all p-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-primary/10 text-primary border-none uppercase tracking-widest text-[9px]">{synth.type}</Badge>
+                    <span className="text-xs text-muted-foreground">{synth.createdAt?.seconds ? format(new Date(synth.createdAt.seconds * 1000), "MMM d, yyyy") : "Fragment"}</span>
+                  </div>
+                  <Button size="sm" variant="ghost" className="text-primary hover:text-primary hover:bg-primary/5 rounded-full" onClick={() => handleStartRadio(synth.content)}>
+                    <Radio className="w-4 h-4" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+            {recentSyntheses.length === 0 && <div className="text-center py-6 glass-morphism rounded-2xl border-white/5 italic text-muted-foreground text-xs">Archive is currently empty.</div>}
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {(emotionalInsight || audioUrl) && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+            <Card className="glass-morphism border-primary/20 bg-primary/5 overflow-hidden">
+              <CardContent className="p-8 space-y-4">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-headline text-lg text-primary flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> Secure Synthesis Results</h4>
+                  <Button variant="ghost" size="sm" onClick={() => { setEmotionalInsight(null); setAudioUrl(null); }} className="text-muted-foreground hover:text-white"><Trash2 className="w-4 h-4" /></Button>
+                </div>
+                {emotionalInsight && <p className="text-lg font-light italic text-white/90 leading-relaxed">"{emotionalInsight.emotionalSummary}"</p>}
+                {audioUrl && (
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-primary">Streaming Neural Signal...</p>
+                    <audio controls src={audioUrl} className="w-full h-10 filter invert opacity-80" autoPlay />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

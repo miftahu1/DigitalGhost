@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Moon, Sparkles, Brain, Search, Info, Loader2, History, Eye, Lock, ShieldCheck } from "lucide-react";
+import { Moon, Sparkles, Brain, Search, Info, Loader2, History as HistoryIcon, Eye, Lock, ShieldCheck } from "lucide-react";
 import { interpretDream } from "@/ai/flows/dream-interpreter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,7 +84,7 @@ export default function DreamsPage() {
       setDream("");
       toast({ title: "Subconscious Secured", description: "Encrypted mapping archived in the vault." });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Analysis Failed", description: "Neural connection failed." });
+      toast({ variant: "destructive", title: "Analysis Failed", description: "Neural connection failed. Ensure your API keys are valid." });
     } finally {
       setIsAnalyzing(false);
     }
@@ -146,7 +146,7 @@ export default function DreamsPage() {
       )}
 
       <section className="space-y-8 pt-10">
-        <h2 className="font-headline text-2xl font-medium tracking-tight text-white flex items-center gap-3"><History className="w-6 h-6 text-muted-foreground" /> Secure Archive</h2>
+        <h2 className="font-headline text-2xl font-medium tracking-tight text-white flex items-center gap-3"><HistoryIcon className="w-6 h-6 text-muted-foreground" /> Secure Archive</h2>
         {(dreamsLoading || isDecrypting) ? (
           <div className="flex flex-col items-center py-20 gap-4">
             <Loader2 className="w-10 h-10 text-primary animate-spin" />
