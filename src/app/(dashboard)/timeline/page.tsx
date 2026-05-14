@@ -1,9 +1,8 @@
-
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { History, Calendar, Search, Filter, Trash2, ExternalLink } from "lucide-react";
+import { History, Calendar, Search, Trash2, Undo2, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +11,24 @@ import { collection, query, orderBy, deleteDoc, doc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function TimelinePage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const deleteTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -37,14 +48,40 @@ export default function TimelinePage() {
     );
   }, [memories, searchTerm]);
 
-  const handleDelete = async (id: string) => {
+  const performDelete = async (id: string) => {
     if (!user || !db) return;
-    try {
-      await deleteDoc(doc(db, "users", user.uid, "memories", id));
-      toast({ title: "Memory Dissolved", description: "The echo has been removed from your timeline." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Deletion Failed" });
-    }
+    
+    // We start the delete process but offer an undo window via state management or toast
+    // For this prototype, we'll use a toast with an 'Undo' button that clears a timer
+    toast({
+      title: "Echo Disintegrating",
+      description: "Memory will be purged in 10 seconds.",
+      action: (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="rounded-full border-white/20"
+          onClick={() => {
+            if (deleteTimeout.current) {
+              clearTimeout(deleteTimeout.current);
+              deleteTimeout.current = null;
+              toast({ title: "Operation Aborted", description: "The echo remains intact." });
+            }
+          }}
+        >
+          <Undo2 className="w-4 h-4 mr-2" /> Undo
+        </Button>
+      ),
+    });
+
+    deleteTimeout.current = setTimeout(async () => {
+      try {
+        await deleteDoc(doc(db, "users", user.uid, "memories", id));
+        deleteTimeout.current = null;
+      } catch (e) {
+        toast({ variant: "destructive", title: "Dissolution Failed" });
+      }
+    }, 10000);
   };
 
   return (
@@ -104,16 +141,23 @@ export default function TimelinePage() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => handleDelete(memory.id)}
+                            onClick={() => setDeleteId(memory.id)}
                             className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
-                      <p className="text-lg font-light leading-relaxed text-foreground/90 group-hover:text-white transition-colors">
+                      <p className="text-lg font-light leading-relaxed text-foreground/90 group-hover:text-white transition-colors whitespace-pre-wrap">
                         {memory.content}
                       </p>
+                      {memory.type === 'cinema' && memory.analysis?.videoUrl && (
+                        <video 
+                          src={memory.analysis.videoUrl} 
+                          controls 
+                          className="w-full rounded-xl border border-white/10 mt-4" 
+                        />
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -133,6 +177,31 @@ export default function TimelinePage() {
           )}
         </div>
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent className="glass-morphism border-destructive/20 bg-background/95 backdrop-blur-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" /> Confirm Dissolution
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this memory? This will remove it from your digital soul's evolution map.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full border-white/10">Keep Echo</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteId) performDelete(deleteId);
+                setDeleteId(null);
+              }}
+              className="bg-destructive hover:bg-destructive/90 rounded-full"
+            >
+              Dissolve Memory
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

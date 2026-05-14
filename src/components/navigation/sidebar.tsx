@@ -1,4 +1,3 @@
-
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
@@ -13,11 +12,12 @@ import {
   Moon, 
   Mic, 
   LineChart, 
-  Search,
+  Video,
   LogOut,
   User as UserIcon,
   Menu,
-  X
+  X,
+  Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useAuth } from "@/firebase";
@@ -37,6 +37,7 @@ const NAV_ITEMS = [
   { icon: PenLine, label: "Reflect", href: "/reflect" },
   { icon: History, label: "Timeline", href: "/timeline" },
   { icon: MessageSquare, label: "Resonance", href: "/resonance" },
+  { icon: Video, label: "Neural Cinema", href: "/visualize" },
   { icon: Moon, label: "Dreams", href: "/dreams" },
   { icon: Mic, label: "Vocal Echo", href: "/vocal" },
   { icon: LineChart, label: "Evolution", href: "/evolution" },
@@ -59,17 +60,17 @@ export function Sidebar() {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 glass-morphism border-b border-white/5 z-[60]">
         <Link href="/" className="flex items-center gap-2">
-          <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-primary/20 flex items-center justify-center">
+          <div className="relative w-8 h-8 flex items-center justify-center">
             <Image 
-              src="/logos/logo.png" 
+              src="/logo/logo.png" 
               alt="Digital Ghost Icon" 
               width={24} 
               height={24} 
               className="object-contain"
             />
           </div>
-          <span className="font-headline text-sm font-bold tracking-tight text-glow">
-            GHOST
+          <span className="font-headline text-sm font-bold tracking-tight text-glow uppercase">
+            Ghost
           </span>
         </Link>
         <button 
@@ -95,17 +96,17 @@ export function Sidebar() {
       )}>
         <div className="p-6 hidden md:flex items-center gap-3">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="relative w-10 h-10 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Image 
-                src="/logos/logo.png" 
+                src="/logo/logo.png" 
                 alt="Digital Ghost Logo" 
                 width={32} 
                 height={32} 
                 className="object-contain"
               />
             </div>
-            <span className="font-headline text-lg font-bold tracking-tight text-glow">
-              GHOST
+            <span className="font-headline text-lg font-bold tracking-tight text-glow uppercase">
+              Ghost
             </span>
           </Link>
         </div>
@@ -139,11 +140,6 @@ export function Sidebar() {
         </nav>
 
         <div className="p-4 border-t border-white/5 space-y-2">
-          <button className="w-full flex items-center gap-4 px-4 py-3 text-muted-foreground hover:text-white transition-colors">
-            <Search className="w-6 h-6" strokeWidth={1.5} />
-            <span className="font-body text-sm">Neural Search</span>
-          </button>
-
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -156,7 +152,7 @@ export function Sidebar() {
                   </Avatar>
                   <div className="flex-1 overflow-hidden">
                     <p className="text-sm font-medium truncate">{user.displayName || 'Neural Echo'}</p>
-                    <p className="text-[10px] text-muted-foreground truncate uppercase tracking-widest font-bold">Authenticated</p>
+                    <p className="text-[10px] text-muted-foreground truncate uppercase tracking-widest font-bold">Synchronized</p>
                   </div>
                 </button>
               </DropdownMenuTrigger>
