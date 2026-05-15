@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { decryptData } from "@/lib/encryption";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 export default function TimelinePage() {
   const { user } = useUser();
@@ -24,6 +25,7 @@ export default function TimelinePage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [pendingDeletions, setPendingDeletions] = useState<Record<string, number>>({});
   const deletionTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const [expandedMemoryId, setExpandedMemoryId] = useState<string | null>(null);
 
   const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -95,6 +97,9 @@ export default function TimelinePage() {
             filteredMemories.map((memory: any, idx: number) => {
               const isPending = pendingDeletions[memory.id] !== undefined;
               const countdown = pendingDeletions[memory.id];
+              const isExpanded = expandedMemoryId === memory.id;
+              const isLongText = memory.content && memory.content.length > 200;
+
               return (
                 <motion.div key={memory.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-80px" }} className={`flex flex-col md:flex-row items-center gap-6 ${idx % 2 === 0 ? "md:flex-row-reverse" : "md:flex-row"}`}>
                   <div className="w-full md:w-1/2 relative">
@@ -120,7 +125,29 @@ export default function TimelinePage() {
                             <Button variant="ghost" size="icon" onClick={() => setConfirmDeleteId(memory.id)} className="h-7 w-7 text-muted-foreground hover:text-destructive md:opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-3.5 h-3.5" /></Button>
                           )}
                         </div>
-                      <p className="text-sm md:text-base font-light leading-relaxed text-foreground/80 group-hover:text-foreground transition-colors line-clamp-4">{memory.content}</p>
+                        <p
+                          className={cn(
+                            "text-sm md:text-base font-light leading-relaxed text-foreground/80 group-hover:text-foreground transition-colors",
+                            !isExpanded && "line-clamp-4",
+                            isLongText && !isExpanded && "cursor-pointer"
+                          )}
+                          onClick={() => {
+                            if (isLongText && !isExpanded) {
+                              setExpandedMemoryId(memory.id);
+                            }
+                          }}
+                        >
+                          {memory.content}
+                        </p>
+                        {isExpanded && isLongText && (
+                            <button
+                                onClick={() => setExpandedMemoryId(null)}
+                                className="text-xs font-bold text-primary/70 hover:text-primary mt-2 flex items-center gap-1"
+                            >
+                                Show Less
+                                <ChevronRight className="w-3 h-3 transition-transform -rotate-90" />
+                            </button>
+                        )}
                       </CardContent>
                     </Card>
                   </div>
@@ -143,7 +170,7 @@ export default function TimelinePage() {
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
             <AlertDialogCancel className="rounded-full border-white/10 hover:bg-white/5">Maintain Echo</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (confirmDeleteId) startCountdown(confirmDeleteId); setConfirmDeleteId(null); }} className="bg-destructive hover:bg-destructive/90 rounded-full text-xs h-10 px-5">Confirm Purge</AlertDialogAction>
+            <AlertDialogAction onClick={() => { if (confirmDeleteId) startCountdown(confirmDeleteI d); setConfirmDeleteId(null); }} className="bg-destructive hover:bg-destructive/90 rounded-full text-xs h-10 px-5">Confirm Purge</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

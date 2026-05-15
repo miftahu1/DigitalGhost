@@ -9,7 +9,6 @@ import {
   PenLine,
   History,
   MessageSquare,
-  Video,
   User as UserIcon,
   Settings,
 } from 'lucide-react';
@@ -21,7 +20,7 @@ const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Overview', href: '/dashboard' },
   { icon: PenLine, label: 'Reflect', href: '/reflect' },
   { icon: History, label: 'Timeline', href: '/timeline' },
-  { icon: Video, label: 'Visualize', href: '/visualize' },
+  { icon: MessageSquare, label: 'Resonance', href: '/resonance' },
   { icon: Settings, label: 'More', href: '/more' },
 ];
 
