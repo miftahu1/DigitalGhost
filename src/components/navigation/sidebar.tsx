@@ -30,7 +30,7 @@ const NAV_ITEMS = [
   { icon: Cloudy, label: 'Dreams', href: '/dreams' },
   { icon: TrendingUp, label: 'Evolution', href: '/evolution' },
   { icon: History, label: 'Timeline', href: '/timeline' },
-  { icon: Video, label: 'Visualize', href: '/visualize' },
+  { icon: Video, label: 'Visualize', href: '#', disabled: true },
   { icon: Mic, label: 'Vocal', href: '/vocal' },
   { icon: MessageSquare, label: 'Resonance', href: '/resonance' },
   { icon: BrainCircuit, label: 'Cognitive Atlas', href: '/cognitive-atlas' },
@@ -169,11 +169,13 @@ export function Sidebar() {
                 'flex items-center gap-4 px-4 py-3 rounded-xl transition-all relative group',
                 isActive
                   ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
+                item.disabled && 'opacity-50 cursor-not-allowed'
               )}
             >
               <item.icon className={cn('w-5 h-5', isActive ? 'text-primary' : '')} strokeWidth={1.5} />
               <span className="font-body text-sm font-medium tracking-wide">{item.label}</span>
+              {item.disabled && <span className='text-xs text-muted-foreground'>Coming soon...</span>}
               {isActive && (
                 <motion.div
                   layoutId="desktop-active-pill"
