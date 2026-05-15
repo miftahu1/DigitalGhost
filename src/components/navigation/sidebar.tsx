@@ -11,15 +11,25 @@ import {
   MessageSquare,
   User as UserIcon,
   Settings,
+  Cloudy,
+  TrendingUp,
+  Video,
+  Mic,
+  MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
 import { useState, useEffect, useRef } from 'react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Overview', href: '/dashboard' },
   { icon: PenLine, label: 'Reflect', href: '/reflect' },
+  { icon: Cloudy, label: 'Dreams', href: '/dreams' },
+  { icon: TrendingUp, label: 'Evolution', href: '/evolution' },
   { icon: History, label: 'Timeline', href: '/timeline' },
+  { icon: Video, label: 'Visualize', href: '/visualize' },
+  { icon: Mic, label: 'Vocal', href: '/vocal' },
   { icon: MessageSquare, label: 'Resonance', href: '/resonance' },
   { icon: Settings, label: 'More', href: '/more' },
 ];
@@ -60,6 +70,10 @@ export function Sidebar() {
   }, [isMobile]);
 
   if (isMobile) {
+    const primaryMobileItems = NAV_ITEMS.filter(item =>
+      ['/dashboard', '/reflect', '/timeline', '/resonance'].includes(item.href)
+    );
+
     return (
       <motion.div
         animate={{ y: isScrolled ? 100 : 0 }}
@@ -67,7 +81,7 @@ export function Sidebar() {
         className="fixed bottom-0 left-0 right-0 z-40 h-20 border-t border-white/5 bg-background/80 backdrop-blur-lg"
       >
         <nav className="flex h-full items-center justify-around">
-          {NAV_ITEMS.map(item => {
+          {primaryMobileItems.map(item => {
             const isActive = pathname.startsWith(item.href);
             return (
               <Link
@@ -83,6 +97,34 @@ export function Sidebar() {
               </Link>
             );
           })}
+          <Sheet>
+            <SheetTrigger asChild>
+              <button className="flex flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <MoreHorizontal className="h-5 w-5" />
+                <span>More</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="bg-background/90 backdrop-blur-lg rounded-t-2xl border-t border-white/10">
+              <div className="grid grid-cols-4 gap-4 p-4">
+                {NAV_ITEMS.map(item => {
+                  const isActive = pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'flex flex-col items-center gap-2 rounded-lg py-3 text-center text-xs transition-colors',
+                        isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      <item.icon className="h-6 w-6 mb-1" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
         </nav>
       </motion.div>
     );
