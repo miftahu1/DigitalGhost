@@ -102,7 +102,7 @@ export default function LandingPage() {
       journal: memories.filter(m => m.type === 'journal').length,
       dream: memories.filter(m => m.type === 'dream').length,
       vocal: memories.filter(m => m.type === 'vocal').length,
-      resonance: memories.filter(m => m.content?.includes('Dialogue with Future Self')).length,
+      resonance: memories.filter(m => m.type === 'resonance').length,
     };
   }, [memories]);
 
@@ -354,7 +354,7 @@ export default function LandingPage() {
             <section className="text-center space-y-10 max-w-6xl mx-auto">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: .08 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
                 className="space-y-8"
               >

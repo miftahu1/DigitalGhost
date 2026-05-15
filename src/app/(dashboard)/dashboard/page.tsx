@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { useUser, useFirestore, useCollection } from "@/firebase";
-import { collection, query, orderBy, limit } from "firebase/firestore";
+import { collection, query, orderBy } from "firebase/firestore";
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { decryptData } from "@/lib/encryption";
 import { EvolutionChart } from "@/components/dashboard/evolution-chart";
@@ -15,28 +15,32 @@ import { EvolutionChart } from "@/components/dashboard/evolution-chart";
 export default function Dashboard() {
   const { user } = useUser();
   const db = useFirestore();
-  const [decryptedRecent, setDecryptedRecent] = useState<any[]>([]);
-  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [decryptedMemories, setDecryptedMemories] = useState<any[]>([]);
+  const [isDecrypting, setIsDecrypting] = useState(true);
 
+  // Corrected Query: Remove limit(10) to fetch ALL memories for accurate stats
   const memoriesQuery = useMemo(() => {
     if (!db || !user) return null;
-    return query(collection(db, "users", user.uid, "memories"), orderBy("createdAt", "desc"), limit(10));
+    return query(collection(db, "users", user.uid, "memories"), orderBy("createdAt", "desc"));
   }, [db, user]);
 
-  const { data: memories, loading } = useCollection(memoriesQuery);
+  const { data: rawMemories, loading: memoriesLoading } = useCollection(memoriesQuery);
 
   useEffect(() => {
     async function processMemories() {
-      if (!memories || !user?.uid) return;
+      if (!rawMemories || !user?.uid) {
+        setIsDecrypting(false);
+        return;
+      }
       setIsDecrypting(true);
       try {
         const processed = await Promise.all(
-          memories.slice(0, 3).map(async (m: any) => ({
+          rawMemories.map(async (m: any) => ({
             ...m,
             content: m.isEncrypted ? await decryptData(m.content, user.uid) : m.content
           }))
         );
-        setDecryptedRecent(processed);
+        setDecryptedMemories(processed);
       } catch (err) {
         console.error("Dashboard decryption error:", err);
       } finally {
@@ -44,26 +48,28 @@ export default function Dashboard() {
       }
     }
     processMemories();
-  }, [memories, user?.uid]);
+  }, [rawMemories, user?.uid]);
 
+  // Corrected Calculation: Use the full decryptedMemories list
   const summaryCounts = useMemo(() => {
-    if (!memories) return { total: 0, reflections: 0, dreams: 0, vocals: 0, resonances: 0 };
-    const reflections = memories.filter((m: any) => m.type === "journal").length;
-    const dreams = memories.filter((m: any) => m.type === "dream").length;
-    const vocals = memories.filter((m: any) => m.type === "vocal").length;
-    const resonances = memories.filter((m: any) => m.content?.includes("Dialogue with Future Self")).length;
-    return { total: memories.length, reflections, dreams, vocals, resonances };
-  }, [memories]);
+    if (!decryptedMemories) return { total: 0, reflections: 0, dreams: 0, vocals: 0, resonances: 0 };
+    const reflections = decryptedMemories.filter((m: any) => m.type === "journal" || m.type === "entry").length;
+    const dreams = decryptedMemories.filter((m: any) => m.type === "dream").length;
+    const vocals = decryptedMemories.filter((m: any) => m.type === "vocal").length;
+    // Corrected Logic: Count by type instead of content
+    const resonances = decryptedMemories.filter((m: any) => m.type === "resonance").length;
+    return { total: decryptedMemories.length, reflections, dreams, vocals, resonances };
+  }, [decryptedMemories]);
 
   const chartData = useMemo(() => {
-    if (!memories || memories.length === 0) return [];
+    if (!decryptedMemories || decryptedMemories.length === 0) return [];
     const now = new Date();
     const startOfRange = subMonths(now, 5);
     const months = eachMonthOfInterval({ start: startOfRange, end: now });
     return months.map(month => {
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
-      const monthMemories = memories.filter((m: any) => {
+      const monthMemories = decryptedMemories.filter((m: any) => {
         if (!m.createdAt?.seconds) return false;
         const date = new Date(m.createdAt.seconds * 1000);
         return date >= monthStart && date <= monthEnd;
@@ -76,11 +82,13 @@ export default function Dashboard() {
         emotional: count > 0 ? (40 + (count * 5)) : 0
       };
     });
-  }, [memories]);
+  }, [decryptedMemories]);
+
+  const recentMemoriesForDisplay = useMemo(() => decryptedMemories.slice(0, 3), [decryptedMemories]);
+  const isLoading = memoriesLoading || isDecrypting;
 
   return (
     <div className="space-y-6 md:space-y-8 pb-20">
-      {/* Welcome Header */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -111,12 +119,13 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Corrected Stats Grid: Added "Vocals" */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { label: "Vault Entries", value: summaryCounts.total, icon: History },
           { label: "Reflections", value: summaryCounts.reflections, icon: PenLine },
           { label: "Dreams", value: summaryCounts.dreams, icon: Moon },
+          { label: "Vocals", value: summaryCounts.vocals, icon: Mic },
           { label: "Resonances", value: summaryCounts.resonances, icon: MessageSquare },
         ].map((stat, idx) => (
           <motion.div
@@ -125,16 +134,15 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
           >
-            <Card className="glass-morphism border-white/10 bg-transparent p-4 text-center hover:border-primary/20 transition-all">
+            <Card className="glass-morphism border-white/10 bg-transparent p-4 text-center hover:border-primary/20 transition-all h-full">
               <stat.icon className="w-5 h-5 text-primary/60 mx-auto mb-2" />
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{stat.label}</p>
               <p className="text-2xl md:text-3xl font-headline font-bold mt-1">{stat.value}</p>
             </Card>
           </motion.div>
         ))}
       </div>
 
-      {/* Evolution Chart & Quick Actions */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <EvolutionChart data={chartData} />
@@ -172,7 +180,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Echoes */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-headline text-xl font-medium flex items-center gap-2">
@@ -182,14 +189,14 @@ export default function Dashboard() {
           <Link href="/timeline" className="text-xs text-primary hover:underline">View all</Link>
         </div>
 
-        {isDecrypting ? (
+        {isLoading ? (
           <div className="flex flex-col items-center py-12 gap-3">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Decrypting Archive...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {decryptedRecent.map((memory: any, i: number) => (
+            {recentMemoriesForDisplay.map((memory: any, i: number) => (
               <motion.div
                 key={memory.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -208,13 +215,13 @@ export default function Dashboard() {
                       {memory.content}
                     </p>
                     <Button variant="link" asChild className="p-0 h-auto text-primary text-[10px] uppercase tracking-wider font-semibold">
-                      <Link href="/timeline">View in Timeline</Link>
+                      <Link href={`/timeline#${memory.id}`}>View in Timeline</Link>
                     </Button>
                   </CardContent>
                 </Card>
               </motion.div>
             ))}
-            {(!loading && decryptedRecent.length === 0) && (
+            {(!isLoading && recentMemoriesForDisplay.length === 0) && (
               <div className="col-span-full py-12 text-center text-muted-foreground italic glass-morphism rounded-2xl text-sm">
                 No recent memories found. Start your first reflection.
               </div>
@@ -223,7 +230,6 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Feature Links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link href="/resonance">
           <Card className="group glass-morphism border-white/5 bg-gradient-to-br from-primary/5 to-transparent hover:from-primary/10 transition-all cursor-pointer">
@@ -238,7 +244,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </Link>
-
         <Link href="/dreams">
           <Card className="group glass-morphism border-white/5 bg-gradient-to-br from-accent/5 to-transparent hover:from-accent/10 transition-all cursor-pointer">
             <CardContent className="p-5 flex items-center gap-4">
@@ -252,7 +257,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </Link>
-
         <Link href="/vocal">
           <Card className="group glass-morphism border-white/5 bg-gradient-to-br from-white/5 to-transparent hover:from-white/10 transition-all cursor-pointer">
             <CardContent className="p-5 flex items-center gap-4">
