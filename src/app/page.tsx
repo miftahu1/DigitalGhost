@@ -20,13 +20,14 @@ import {
   Infinity,
   PenLine,
   Moon,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -43,6 +44,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { usePersonalityVectors } from "@/lib/personality-vectors";
+import { toPng } from "html-to-image";
 
 export default function LandingPage() {
   const { user, loading } = useUser();
@@ -52,6 +54,7 @@ export default function LandingPage() {
   const [decryptedRecentMemories, setDecryptedRecentMemories] = useState<any[]>([]);
   const [isDecryptingRecent, setIsDecryptingRecent] = useState(false);
   const { vectors, loading: vectorsLoading } = usePersonalityVectors();
+  const vectorCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const hasSeenPrivacy = localStorage.getItem('dg_privacy_seen');
@@ -66,6 +69,23 @@ export default function LandingPage() {
       localStorage.setItem('dg_privacy_seen', 'true');
     }
     setShowPrivacyModal(false);
+  };
+
+  const handleDownloadImage = async () => {
+    if (!vectorCardRef.current) return;
+    try {
+      const dataUrl = await toPng(vectorCardRef.current, {
+        quality: 0.95,
+        backgroundColor: '#1a1a1a',
+        pixelRatio: 2
+      });
+      const link = document.createElement('a');
+      link.download = 'digital-ghost-personality-vectors.png';
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Error generating image', error);
+    }
   };
 
   const memoriesQuery = useMemo(() => {
@@ -223,31 +243,36 @@ export default function LandingPage() {
 
               {/* Personality Vectors & Quick Actions */}
               <section className="grid gap-4 lg:grid-cols-2">
-                <Card className="glass-morphism border-white/10 bg-transparent p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Personality Vectors</p>
-                      <h2 className="mt-1 text-xl md:text-2xl font-headline font-semibold">Current State</h2>
-                    </div>
-                    <Badge className="bg-accent/20 text-accent border-none">Adaptive</Badge>
-                  </div>
-                  <div className="space-y-4">
-                    {[
-                      { label: "Resilience", val: vectors.resilience, icon: Zap },
-                      { label: "Empathy", val: vectors.empathy, icon: Heart },
-                      { label: "Clarity", val: vectors.clarity, icon: Brain },
-                      { label: "Openness", val: vectors.openness, icon: Globe },
-                    ].map((s, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-2 text-muted-foreground"><s.icon className="w-3 h-3" /> {s.label}</span>
-                          <span className="font-semibold">{s.val}%</span>
+                 <div ref={vectorCardRef} className="bg-background p-6 rounded-2xl">
+                    <Card className="glass-morphism border-white/10 bg-transparent p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Personality Vectors</p>
+                          <h2 className="mt-1 text-xl md:text-2xl font-headline font-semibold">Current State</h2>
                         </div>
-                        <Progress value={s.val} className="h-1.5 rounded-full bg-white/10" indicatorClassName="bg-gradient-to-r from-primary to-accent" />
+                         <Button variant="outline" size="icon" onClick={handleDownloadImage} className="rounded-full">
+                           <Download className="h-4 w-4" />
+                         </Button>
                       </div>
-                    ))}
-                  </div>
-                </Card>
+                      <div className="space-y-4">
+                        {[
+                          { label: "Resilience", val: vectors.resilience, icon: Zap },
+                          { label: "Empathy", val: vectors.empathy, icon: Heart },
+                          { label: "Clarity", val: vectors.clarity, icon: Brain },
+                          { label: "Openness", val: vectors.openness, icon: Globe },
+                        ].map((s, index) => (
+                          <div key={index} className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="flex items-center gap-2 text-muted-foreground"><s.icon className="w-3 h-3" /> {s.label}</span>
+                              <span className="font-semibold">{s.val}%</span>
+                            </div>
+                            <Progress value={s.val} className="h-1.5 rounded-full bg-white/10" indicatorClassName="bg-gradient-to-r from-primary to-accent" />
+                          </div>
+                        ))}
+                      </div>
+                       <p className="text-center text-xs text-muted-foreground mt-6">Generated by Digital Ghost</p>
+                    </Card>
+                 </div>
 
                 <Card className="glass-morphism border-white/10 bg-transparent p-6">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Quick Actions</p>
