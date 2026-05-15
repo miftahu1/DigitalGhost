@@ -18,6 +18,7 @@ import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, start
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { decryptData, encryptData } from "@/lib/encryption";
+import { usePersonalityVectors } from "@/lib/personality-vectors";
 
 type FilterRange = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -25,6 +26,7 @@ export default function EvolutionPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const { vectors, loading: vectorsLoading } = usePersonalityVectors();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
@@ -50,12 +52,6 @@ export default function EvolutionPage() {
     }
     process();
   }, [rawMemories, user?.uid]);
-
-  const derivedStats = useMemo(() => {
-    if (decryptedMemories.length === 0) return { resilience: 10, empathy: 10, clarity: 10, openness: 10 };
-    const counts = { journal: decryptedMemories.filter(m => m.type === 'journal' || m.type === 'entry').length, dream: decryptedMemories.filter(m => m.type === 'dream').length, vocal: decryptedMemories.filter(m => m.type === 'vocal').length, resonance: decryptedMemories.filter(m => m.type === 'resonance').length };
-    return { resilience: Math.min(100, 15 + (counts.journal * 5)), empathy: Math.min(100, 15 + (counts.resonance * 10)), clarity: Math.min(100, 15 + (counts.dream * 8)), openness: Math.min(100, 15 + (counts.vocal * 7)) };
-  }, [decryptedMemories]);
 
   const chartData = useMemo(() => {
     if (decryptedMemories.length === 0) return [];
@@ -118,10 +114,10 @@ export default function EvolutionPage() {
   };
 
   const stats = [
-    { label: "Resilience", value: derivedStats.resilience, icon: Zap, color: "text-primary" },
-    { label: "Empathy", value: derivedStats.empathy, icon: Heart, color: "text-accent" },
-    { label: "Clarity", value: derivedStats.clarity, icon: Sparkles, color: "text-foreground" },
-    { label: "Openness", value: derivedStats.openness, icon: TrendingUp, color: "text-secondary" },
+    { label: "Resilience", value: vectors.resilience, icon: Zap, color: "text-primary" },
+    { label: "Empathy", value: vectors.empathy, icon: Heart, color: "text-accent" },
+    { label: "Clarity", value: vectors.clarity, icon: Sparkles, color: "text-foreground" },
+    { label: "Openness", value: vectors.openness, icon: TrendingUp, color: "text-secondary" },
   ];
 
   const recentSyntheses = useMemo(() => decryptedMemories.filter((m: any) => m.type === 'synthesis' || m.type === 'recap').slice(-5).reverse(), [decryptedMemories]);
@@ -156,7 +152,7 @@ export default function EvolutionPage() {
           <Card className="glass-morphism border-white/5 bg-transparent">
             <CardHeader><CardTitle className="font-headline text-base font-medium">Personality Status</CardTitle></CardHeader>
             <CardContent className="space-y-5">
-              {memoriesLoading ? <div className="py-8 text-center"><Loader2 className="animate-spin mx-auto text-primary" /></div> :
+              {vectorsLoading ? <div className="py-8 text-center"><Loader2 className="animate-spin mx-auto text-primary" /></div> :
                 stats.map((stat, i) => (
                   <div key={i} className="space-y-1.5">
                     <div className="flex justify-between items-center text-xs"><div className="flex items-center gap-2"><stat.icon className={`w-3.5 h-3.5 ${stat.color}`} /><span className="text-foreground/80">{stat.label}</span></div><span className="font-bold text-foreground">{stat.value}%</span></div>

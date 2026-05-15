@@ -42,6 +42,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { usePersonalityVectors } from "@/lib/personality-vectors";
 
 export default function LandingPage() {
   const { user, loading } = useUser();
@@ -50,6 +51,7 @@ export default function LandingPage() {
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [decryptedRecentMemories, setDecryptedRecentMemories] = useState<any[]>([]);
   const [isDecryptingRecent, setIsDecryptingRecent] = useState(false);
+  const { vectors, loading: vectorsLoading } = usePersonalityVectors();
 
   useEffect(() => {
     const hasSeenPrivacy = localStorage.getItem('dg_privacy_seen');
@@ -93,24 +95,6 @@ export default function LandingPage() {
     }
     decryptRecent();
   }, [memories, user?.uid]);
-
-  const derivedStats = useMemo(() => {
-    if (!memories) return { resilience: 50, empathy: 50, clarity: 50, openness: 50 };
-    
-    const counts = {
-      journal: memories.filter(m => m.type === 'journal').length,
-      dream: memories.filter(m => m.type === 'dream').length,
-      vocal: memories.filter(m => m.type === 'vocal').length,
-      resonance: memories.filter(m => m.content?.includes('Dialogue with Future Self')).length,
-    };
-
-    return {
-      resilience: Math.min(100, 30 + (counts.journal * 3)),
-      empathy: Math.min(100, 30 + (counts.resonance * 8)),
-      clarity: Math.min(100, 30 + (counts.dream * 7)),
-      openness: Math.min(100, 30 + (counts.vocal * 6)),
-    };
-  }, [memories]);
 
   const overviewCounts = useMemo(() => {
     if (!memories) return { journal: 0, dream: 0, vocal: 0, resonance: 0 };
@@ -249,10 +233,10 @@ export default function LandingPage() {
                   </div>
                   <div className="space-y-4">
                     {[
-                      { label: "Resilience", val: derivedStats.resilience, icon: Zap },
-                      { label: "Empathy", val: derivedStats.empathy, icon: Heart },
-                      { label: "Clarity", val: derivedStats.clarity, icon: Brain },
-                      { label: "Openness", val: derivedStats.openness, icon: Globe },
+                      { label: "Resilience", val: vectors.resilience, icon: Zap },
+                      { label: "Empathy", val: vectors.empathy, icon: Heart },
+                      { label: "Clarity", val: vectors.clarity, icon: Brain },
+                      { label: "Openness", val: vectors.openness, icon: Globe },
                     ].map((s, index) => (
                       <div key={index} className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
@@ -370,7 +354,7 @@ export default function LandingPage() {
             <section className="text-center space-y-10 max-w-6xl mx-auto">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={{ opacity: 1, y: .08 }}
                 transition={{ duration: 0.8 }}
                 className="space-y-8"
               >

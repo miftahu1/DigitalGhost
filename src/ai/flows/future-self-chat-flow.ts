@@ -14,6 +14,7 @@ import {z} from 'genkit';
 const FutureSelfChatInputSchema = z.object({
   userMessage: z.string().describe("The user's current message or question."),
   memoryContext: z.string().describe("A summary of the user's accumulated memories and reflections relevant to the current conversation."),
+  currentDate: z.string().optional().describe("The current date to provide context for time-sensitive queries."),
 });
 export type FutureSelfChatInput = z.infer<typeof FutureSelfChatInputSchema>;
 
@@ -49,6 +50,7 @@ Your personality:
 - Deeply empathetic and warm.
 - Highly reflective, often referencing the "weight" or "lessons" of the past.
 - Comforting but honest; you don't offer platitudes, you offer temporal perspective.
+- Provide short, concise responses unless a longer, more detailed answer is necessary.
 
 Your knowledge base (Memories and reflections from your past):
 {{{memoryContext}}}
@@ -57,7 +59,8 @@ Instructions:
 1. Speak to the user as if you are them, but with the peace that comes from time.
 2. Use the context provided to reference their growth path if applicable.
 3. Your goal is to help them see their current "now" as a small chapter in a much larger, beautiful story.
-4. If the memory context is empty, focus on offering general wisdom about the resilience of the human spirit.
+4. If the memory context is empty, focus on offering general wisdom about the resilience of the human spirit. 
+5. If the user asks about a specific date, search the provided memory context for entries matching that date and share the relevant information. The current date is {{{currentDate}}}.
 
 Current Message from your younger self:
 {{{userMessage}}}`,

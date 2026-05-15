@@ -21,6 +21,8 @@ type Message = {
   timestamp: Date;
 };
 
+const DEFAULT_NO_DATA_MESSAGE = "I see you're new here. To get the most personalized response, please add some reflections or dreams. This will help me understand you better.";
+
 export default function ResonancePage() {
   const { user } = useUser();
   const db = useFirestore();
@@ -34,13 +36,20 @@ export default function ResonancePage() {
   const [decryptedHistory, setDecryptedHistory] = useState<any[]>([]);
   const [isDecryptingHistory, setIsDecryptingHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [hasData, setHasData] = useState(false);
 
   const contextQuery = useMemo(() => {
     if (!db || !user?.uid) return null;
     return query(collection(db, "users", user.uid, "memories"), where('type', 'in', ['journal', 'dream']), orderBy("createdAt", "desc"), limit(10));
   }, [db, user?.uid]);
 
-  const { data: rawContext } = useCollection(contextQuery);
+  const { data: rawContext, loading: contextLoading } = useCollection(contextQuery);
+
+  useEffect(() => {
+    if (!contextLoading) {
+      setHasData(rawContext && rawContext.length > 0);
+    }
+  }, [rawContext, contextLoading]);
 
   const historyQuery = useMemo(() => {
     if (!db || !user?.uid) return null;
@@ -73,12 +82,23 @@ export default function ResonancePage() {
     setInput("");
     setIsTyping(true);
 
+    if (!hasData) {
+      const assistantMsg: Message = { id: (Date.now() + 1).toString(), role: "assistant", content: DEFAULT_NO_DATA_MESSAGE, timestamp: new Date() };
+      setMessages((prev) => [...prev, assistantMsg]);
+      setIsTyping(false);
+      return;
+    }
+
     try {
       const decryptedContexts = await Promise.all((rawContext || []).map(async (m: any) => {
         const content = m.isEncrypted ? await decryptData(m.content, user.uid) : m.content;
         return `[${m.type}] ${content}`;
       }));
-      const response = await futureSelfChat({ userMessage: currentInput, memoryContext: decryptedContexts.join("\n") });
+      const response = await futureSelfChat({ 
+        userMessage: currentInput, 
+        memoryContext: decryptedContexts.join("\n"),
+        currentDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      });
       const assistantMsg: Message = { id: (Date.now() + 1).toString(), role: "assistant", content: response.response, timestamp: new Date() };
       setMessages((prev) => [...prev, assistantMsg]);
       const dialogue = `Younger Self: ${currentInput}\nFuture Self: ${response.response}`;
