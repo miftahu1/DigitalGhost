@@ -16,6 +16,8 @@ import {
   Video,
   Mic,
   MoreHorizontal,
+  BrainCircuit,
+  Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
@@ -31,6 +33,8 @@ const NAV_ITEMS = [
   { icon: Video, label: 'Visualize', href: '/visualize' },
   { icon: Mic, label: 'Vocal', href: '/vocal' },
   { icon: MessageSquare, label: 'Resonance', href: '/resonance' },
+  { icon: BrainCircuit, label: 'Cognitive Atlas', href: '/cognitive-atlas' },
+  { icon: Package, label: 'Legacy', href: '/legacy' },
   { icon: Settings, label: 'More', href: '/more' },
 ];
 

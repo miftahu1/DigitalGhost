@@ -1,62 +1,26 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, History, MessageSquare, Moon, Mic, Loader2, ShieldCheck, PenLine, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
-import { useUser, useFirestore, useCollection } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { useUser } from "@/firebase";
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
-import { decryptData } from "@/lib/encryption";
 import { EvolutionChart } from "@/components/dashboard/evolution-chart";
+import { useDecryptedMemories } from "@/hooks/use-decrypted-memories";
+import { EchoesOfThePast } from "@/components/dashboard/EchoesOfThePast";
 
 export default function Dashboard() {
   const { user } = useUser();
-  const db = useFirestore();
-  const [decryptedMemories, setDecryptedMemories] = useState<any[]>([]);
-  const [isDecrypting, setIsDecrypting] = useState(true);
+  const { decryptedMemories, loading: isLoading } = useDecryptedMemories();
 
-  // Corrected Query: Remove limit(10) to fetch ALL memories for accurate stats
-  const memoriesQuery = useMemo(() => {
-    if (!db || !user) return null;
-    return query(collection(db, "users", user.uid, "memories"), orderBy("createdAt", "desc"));
-  }, [db, user]);
-
-  const { data: rawMemories, loading: memoriesLoading } = useCollection(memoriesQuery);
-
-  useEffect(() => {
-    async function processMemories() {
-      if (!rawMemories || !user?.uid) {
-        setIsDecrypting(false);
-        return;
-      }
-      setIsDecrypting(true);
-      try {
-        const processed = await Promise.all(
-          rawMemories.map(async (m: any) => ({
-            ...m,
-            content: m.isEncrypted ? await decryptData(m.content, user.uid) : m.content
-          }))
-        );
-        setDecryptedMemories(processed);
-      } catch (err) {
-        console.error("Dashboard decryption error:", err);
-      } finally {
-        setIsDecrypting(false);
-      }
-    }
-    processMemories();
-  }, [rawMemories, user?.uid]);
-
-  // Corrected Calculation: Use the full decryptedMemories list
   const summaryCounts = useMemo(() => {
     if (!decryptedMemories) return { total: 0, reflections: 0, dreams: 0, vocals: 0, resonances: 0 };
     const reflections = decryptedMemories.filter((m: any) => m.type === "journal" || m.type === "entry").length;
     const dreams = decryptedMemories.filter((m: any) => m.type === "dream").length;
     const vocals = decryptedMemories.filter((m: any) => m.type === "vocal").length;
-    // Corrected Logic: Count by type instead of content
     const resonances = decryptedMemories.filter((m: any) => m.type === "resonance").length;
     return { total: decryptedMemories.length, reflections, dreams, vocals, resonances };
   }, [decryptedMemories]);
@@ -85,7 +49,6 @@ export default function Dashboard() {
   }, [decryptedMemories]);
 
   const recentMemoriesForDisplay = useMemo(() => decryptedMemories.slice(0, 3), [decryptedMemories]);
-  const isLoading = memoriesLoading || isDecrypting;
 
   return (
     <div className="space-y-6 md:space-y-8 pb-20">
@@ -119,7 +82,6 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Corrected Stats Grid: Added "Vocals" */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { label: "Vault Entries", value: summaryCounts.total, icon: History },
@@ -142,6 +104,8 @@ export default function Dashboard() {
           </motion.div>
         ))}
       </div>
+
+      <EchoesOfThePast />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
