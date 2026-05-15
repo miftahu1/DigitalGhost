@@ -88,7 +88,7 @@ export function Sidebar() {
   };
 
   // Mobile bottom navigation
-  if (isMobile && isOpen === false) {
+  if (isMobile) {
     return (
       <>
         {/* Mobile Header */}
