@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -170,7 +170,7 @@ export default function TimelinePage() {
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
             <AlertDialogCancel className="rounded-full border-white/10 hover:bg-white/5">Maintain Echo</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (confirmDeleteId) startCountdown(confirmDeleteI d); setConfirmDeleteId(null); }} className="bg-destructive hover:bg-destructive/90 rounded-full text-xs h-10 px-5">Confirm Purge</AlertDialogAction>
+            <AlertDialogAction onClick={() => { if (confirmDeleteId) startCountdown(confirmDeleteId); setConfirmDeleteId(null); }} className="bg-destructive hover:bg-destructive/90 rounded-full text-xs h-10 px-5">Confirm Purge</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
