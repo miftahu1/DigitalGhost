@@ -5,7 +5,7 @@ import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, query, orderBy, addDoc, Timestamp, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Loader2, Zap, Brain, History, Mic, FileText, ChevronRight, X } from 'lucide-react';
 import { emotionalInsightSummary, EmotionalInsightSummaryOutput } from '@/ai/flows/emotional-insight-summary';
