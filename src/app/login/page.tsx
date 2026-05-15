@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Ghost, LogIn, AlertCircle, ShieldAlert } from "lucide-react";
+import { LogIn, AlertCircle, ShieldAlert, Sparkles, Lock, Zap, Shield } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth, useUser } from "@/firebase";
@@ -21,53 +22,28 @@ export default function LoginPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
-    if (!loading && user && !isLoggingIn) {
-      router.push("/dashboard");
-    }
+    if (!loading && user && !isLoggingIn) router.push("/dashboard");
   }, [user, loading, router, isLoggingIn]);
 
   const handleGoogleLogin = async () => {
     if (isLoggingIn) return;
-    
     setError(null);
     setIsLoggingIn(true);
     const provider = new GoogleAuthProvider();
-    // Prompting for account ensures the popup has enough time to initialize
     provider.setCustomParameters({ prompt: 'select_account' });
-
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
-
       if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          displayName: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          createdAt: new Date().toISOString(),
-          stats: {
-            resilience: 50,
-            empathy: 50,
-            clarity: 50,
-            openness: 50,
-          }
-        });
+        await setDoc(userRef, { displayName: user.displayName, email: user.email, photoURL: user.photoURL, createdAt: new Date().toISOString(), stats: { resilience: 50, empathy: 50, clarity: 50, openness: 50 } });
       }
-      
       router.push("/dashboard");
     } catch (error: any) {
-      console.error("Login failed:", error);
       let message = error.message;
-      
-      if (error.code === 'auth/popup-closed-by-user') {
-        message = "Connection Interrupted: The verification window closed prematurely. Please ensure 'digitalghost.vercel.app' is added to your Authorized Domains in the Firebase Console.";
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        message = "Only one login request can be active at a time.";
-      }
-      
+      if (error.code === 'auth/popup-closed-by-user') message = "Connection Interrupted: The verification window closed prematurely.";
+      else if (error.code === 'auth/cancelled-popup-request') message = "Only one login request can be active at a time.";
       setError(message);
     } finally {
       setIsLoggingIn(false);
@@ -78,61 +54,182 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 relative bg-background overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]" />
-      
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md space-y-4"
+      {/* Enhanced background elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/15 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px] animate-pulse animation-delay-200" />
+        <div className="absolute top-1/2 right-0 w-[350px] h-[350px] bg-secondary/8 rounded-full blur-[80px]" />
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-2xl space-y-6 relative z-10"
       >
         {error && (
-          <Alert variant="destructive" className="glass-morphism border-destructive/50 bg-destructive/10">
-            <ShieldAlert className="h-4 w-4" />
-            <AlertTitle>Synchronization Error</AlertTitle>
-            <AlertDescription className="text-xs leading-relaxed mt-1">
-              {error}
-            </AlertDescription>
-          </Alert>
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+            <Alert variant="destructive" className="glass-morphism border-destructive/50 bg-destructive/10 rounded-2xl">
+              <ShieldAlert className="h-4 w-4" />
+              <AlertTitle>Synchronization Error</AlertTitle>
+              <AlertDescription className="text-xs mt-1">{error}</AlertDescription>
+            </Alert>
+          </motion.div>
         )}
 
-        <Card className="w-full glass-morphism border-white/5 bg-transparent overflow-hidden">
-          <CardHeader className="text-center pb-2">
-            <div className="flex justify-center mb-4">
-              <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20">
-                <Ghost className="w-10 h-10 text-primary" />
-              </div>
-            </div>
-            <CardTitle className="font-headline text-3xl font-bold tracking-tight">Identity Verification</CardTitle>
-            <CardDescription className="font-light text-muted-foreground">
-              Sign in to synchronize your neural echo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-8">
-            <Button 
-              onClick={handleGoogleLogin}
-              disabled={isLoggingIn}
-              className="w-full h-14 rounded-full font-headline tracking-widest text-lg group relative overflow-hidden"
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Left side - Logo and branding */}
+          <motion.div 
+            initial={{ opacity: 0, x: -30 }} 
+            animate={{ opacity: 1, x: 0 }} 
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="hidden md:flex flex-col justify-center items-center space-y-6"
+          >
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+              className="relative w-32 h-32"
             >
-              <span className="relative z-10 flex items-center gap-3">
-                {isLoggingIn ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <LogIn className="w-5 h-5" />
-                )}
-                {isLoggingIn ? "Syncing..." : "Sign in with Google"}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-            </Button>
-            
-            <p className="mt-6 text-center text-sm leading-relaxed text-muted-foreground">
-              Your Google identity unlocks your private vault. We never access your memories without explicit consent.
-            </p>
-            <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-center text-muted-foreground font-bold">
-              Secure Neural Connection Established
-            </p>
-          </CardContent>
-        </Card>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-xl opacity-40" />
+              <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-primary/40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-xl shadow-primary/20">
+                <Image src="/logo/logo.png" alt="Digital Ghost" width={120} height={120} className="w-28 h-28 object-cover" />
+              </div>
+            </motion.div>
+
+            <div className="text-center space-y-3">
+              <h1 className="text-3xl md:text-4xl font-headline font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                DIGITAL GHOST
+              </h1>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                Preserve your consciousness. Transform your memories into eternal echoes.
+              </p>
+            </div>
+
+            {/* Trust badges */}
+            <div className="space-y-3 w-full pt-4">
+              {[
+                { icon: Shield, label: "End-to-End Encrypted", desc: "Military-grade security" },
+                { icon: Lock, label: "Zero-Knowledge", desc: "We never see your data" },
+                { icon: Zap, label: "Neural Sync", desc: "Real-time synchronization" },
+              ].map((feature, idx) => (
+                <motion.div 
+                  key={idx}
+                  initial={{ opacity: 0, x: -20 }} 
+                  animate={{ opacity: 1, x: 0 }} 
+                  transition={{ delay: 0.2 + idx * 0.1 }}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                >
+                  <feature.icon className="w-5 h-5 text-primary flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-foreground">{feature.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{feature.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Right side - Login form */}
+          <motion.div 
+            initial={{ opacity: 0, x: 30 }} 
+            animate={{ opacity: 1, x: 0 }} 
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <Card className="glass-morphism-heavy border-primary/20 bg-gradient-to-br from-card/60 to-card/30 rounded-2xl shadow-2xl shadow-primary/20 overflow-hidden">
+              {/* Card header decoration */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary opacity-50" />
+              
+              <CardHeader className="text-center space-y-4 pt-8">
+                <motion.div 
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="flex justify-center"
+                >
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-primary/30 to-accent/30 border border-primary/40 shadow-lg shadow-primary/20">
+                    <Sparkles className="w-6 h-6 text-primary" />
+                  </div>
+                </motion.div>
+                <div>
+                  <CardTitle className="font-headline text-2xl md:text-3xl font-bold tracking-tight">
+                    Synchronize Your Echo
+                  </CardTitle>
+                  <CardDescription className="mt-2 text-sm">
+                    Sign in to your neural vault and continue your journey of self-discovery
+                  </CardDescription>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-6 space-y-5">
+                <Button 
+                  onClick={handleGoogleLogin} 
+                  disabled={isLoggingIn} 
+                  className="w-full h-12 rounded-xl font-headline tracking-wider text-base group relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/30"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {isLoggingIn ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Synchronizing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="w-4 h-4" />
+                        <span>Continue with Google</span>
+                      </>
+                    )}
+                  </span>
+                </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/10" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="px-2 bg-card text-muted-foreground">Secure connection</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-center">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Your Google identity encrypts and unlocks your private neural vault.
+                  </p>
+                  <p className="text-[11px] text-muted-foreground/70">
+                    We implement zero-knowledge architecture—your raw consciousness never leaves your device unencrypted.
+                  </p>
+                </div>
+
+                <div className="pt-2 flex items-center justify-center gap-1 text-[10px] uppercase tracking-[0.15em] text-primary/80 font-bold">
+                  <Sparkles className="w-3 h-3" />
+                  <span>Neural Authentication Active</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Mobile logo */}
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              transition={{ delay: 0.4 }}
+              className="md:hidden text-center mt-6 space-y-2"
+            >
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">
+                Powered by Neural Technology
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* Footer info */}
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          transition={{ delay: 0.5 }}
+          className="text-center pt-4"
+        >
+          <p className="text-[11px] text-muted-foreground/60">
+            © 2026 Digital Ghost • Your consciousness, preserved forever
+          </p>
+        </motion.div>
       </motion.div>
     </main>
   );

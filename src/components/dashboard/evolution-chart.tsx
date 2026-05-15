@@ -19,7 +19,7 @@ export function EvolutionChart({ data = [] }: EvolutionChartProps) {
   return (
     <Card className="glass-morphism border-white/5 bg-transparent h-[400px]">
       <CardHeader>
-        <CardTitle className="font-headline text-lg font-medium tracking-wide flex items-center justify-between text-white">
+        <CardTitle className="font-headline text-lg font-medium tracking-wide flex items-center justify-between text-foreground">
           Identity Evolution Map
           <span className="text-xs font-light text-muted-foreground uppercase tracking-widest">Active Neural Tracking</span>
         </CardTitle>
