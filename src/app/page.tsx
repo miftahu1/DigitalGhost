@@ -150,7 +150,7 @@ export default function LandingPage() {
         >
           <div className="absolute top-4 right-4 left-4 flex items-center justify-between rounded-2xl border border-white/10 bg-background/50 p-3 pl-6 shadow-2xl shadow-black/20 backdrop-blur-xl">
             <Link href="/" className="flex items-center gap-2 group">
-              <Image src="/logo/logo.png" alt="Digital Ghost Logo" width={28} height={28} className="transition-transform duration-500 group-hover:rotate-180" />
+              <Image src="/logo/logo.png" alt="Digital Ghost Logo" width={28} height={28} className="rounded-full transition-transform duration-500 group-hover:rotate-180" />
               <span className="font-headline text-base font-bold tracking-tight">
                 DIGITAL GHOST
               </span>
@@ -422,7 +422,7 @@ export default function LandingPage() {
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-2xl opacity-40 animate-pulse" />
                   <div className="relative w-full h-full rounded-full overflow-hidden border-3 border-primary/40 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center shadow-2xl shadow-primary/20">
-                    <Image src="/logo/logo.png" alt="Digital Ghost logo" width={300} height={300} className="w-40 h-40 md:w-52 md:h-52 object-cover" />
+                    <Image src="/logo/logo.png" alt="Digital Ghost logo" width={500} height={500} className="rounded-full w-40 h-40 md:w-52 md:h-52 object-cover" />
                   </div>
                 </motion.div>
 
